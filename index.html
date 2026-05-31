@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Harvest Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0c0c; --surface: #161616; --surface2: #1f1f1f; --surface3: #282828;
+  --border: #2a2a2a; --accent: #e8c547; --accent2: #c8a832;
+  --text: #f0ede6; --muted: #777; --muted2: #555;
+  --green: #4caf76; --red: #e05a5a; --blue: #5a9ee0; --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { font-size: 16px; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-bottom: 30px; }
+
+/* HEADER */
+header { background: var(--surface); border-bottom: 2px solid var(--accent); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 3px; color: var(--accent); line-height: 1; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+#clock { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; }
+.status-pill { display: flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 9px; }
+#statusDot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.4s; }
+#statusLabel { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 1px; }
+
+/* NAV */
+nav { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 52px; z-index: 190; overflow-x: auto; scrollbar-width: none; }
+nav::-webkit-scrollbar { display: none; }
+.nav-btn { flex-shrink: 0; padding: 10px 12px; text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; letter-spacing: 1.5px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; white-space: nowrap; }
+.nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* PAGES */
+.page { display: none; padding: 14px; }
+.page.active { display: block; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 11px 16px; border-radius: 8px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.85rem; transition: all 0.15s; white-space: nowrap; min-height: 44px; }
+.btn-primary { background: var(--accent); color: #1a1500; }
+.btn-primary:active { background: var(--accent2); }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:active { color: var(--text); }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid var(--border); }
+.btn-danger:active { border-color: var(--red); }
+.btn-sm { padding: 8px 12px; font-size: 0.78rem; min-height: 36px; }
+.btn-full { width: 100%; }
+
+/* FORM */
+.form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+.form-card h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; color: var(--accent); margin-bottom: 14px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.field label { display: block; font-size: 0.65rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; font-weight: 500; }
+.field select, .field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.9rem; padding: 11px 12px; outline: none; transition: border-color 0.15s; appearance: none; -webkit-appearance: none; min-height: 44px; }
+.field select:focus, .field input:focus { border-color: var(--accent); }
+.field.error select, .field.error input { border-color: var(--red) !important; background: rgba(224,90,90,0.06); }
+.field.error label { color: var(--red); }
+.select-wrap { position: relative; }
+.select-wrap::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 0.9rem; }
+
+/* HOPPER PILLS */
+.hopper-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.hopper-pill { flex: 1; min-width: 48px; padding: 11px 6px; text-align: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 1px; color: var(--muted); cursor: pointer; transition: all 0.15s; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+.hopper-pill.selected { background: var(--accent); border-color: var(--accent); color: #1a1500; }
+.hopper-pill.error { border-color: var(--red); }
+
+/* SIDE PILLS */
+.side-pills { display: flex; gap: 8px; }
+.side-pill { flex: 1; padding: 11px; text-align: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; font-size: 0.85rem; color: var(--muted); cursor: pointer; transition: all 0.15s; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+.side-pill.selected { background: var(--blue); border-color: var(--blue); color: white; }
+.side-pill.error { border-color: var(--red); }
+
+/* TIME ROW */
+.time-row { display: flex; gap: 8px; align-items: stretch; }
+.time-row input { flex: 1; }
+.time-now-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 11px 12px; cursor: pointer; white-space: nowrap; transition: all 0.15s; min-height: 44px; }
+
+/* FLASH */
+.flash { display: none; border-radius: 8px; padding: 14px 16px; font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; text-align: center; animation: flashIn 0.3s ease; }
+.flash.show { display: block; }
+@keyframes flashIn { from { opacity:0; transform: scale(0.97); } to { opacity:1; transform: scale(1); } }
+
+/* AREA DROPDOWN */
+.area-dropdown-wrap { position: relative; }
+.area-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; z-index: 300; max-height: 220px; overflow-y: auto; display: none; margin-top: 3px; }
+.area-dropdown-list.open { display: block; }
+.area-option { padding: 11px 14px; font-family: 'DM Mono', monospace; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; display: flex; justify-content: space-between; align-items: center; }
+.area-option:last-child { border-bottom: none; }
+.area-option:active { background: var(--surface2); }
+.area-count { font-size: 0.7rem; color: var(--muted); }
+.area-input-row { display: flex; gap: 0; }
+.area-input-row input { border-radius: 8px 0 0 8px; flex: 1; }
+.area-toggle-btn { background: var(--surface2); border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; color: var(--muted); padding: 0 14px; cursor: pointer; font-size: 1rem; min-height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center; }
+
+/* ENTRIES */
+.log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.log-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; }
+.filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-chip { padding: 7px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 0.75rem; font-family: 'DM Mono', monospace; color: var(--muted); cursor: pointer; min-height: 36px; display: flex; align-items: center; }
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #1a1500; font-weight: 600; }
+.log-entries { display: flex; flex-direction: column; gap: 8px; }
+.log-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 11px 13px; display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: start; }
+.log-entry-time { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted); padding-top: 2px; }
+.log-entry-machine { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 1.5px; color: var(--accent); }
+.log-entry-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; line-height: 1.6; }
+.log-entry-meta span { display: inline-block; background: var(--surface2); border-radius: 4px; padding: 1px 6px; margin-right: 3px; margin-bottom: 2px; }
+.log-entry-meta .variety-tag { color: var(--text); }
+.log-entry-meta .hopper-tag { color: var(--blue); }
+.log-entry-tons { font-family: 'DM Mono', monospace; font-size: 0.88rem; font-weight: 500; color: var(--green); text-align: right; white-space: nowrap; }
+.empty-log { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-log .icon { font-size: 2rem; margin-bottom: 10px; }
+
+/* LINES */
+.lines-grid { display: flex; flex-direction: column; gap: 10px; }
+.line-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.line-card-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 13px; border-bottom: 1px solid var(--border); background: var(--surface2); gap: 8px; }
+.line-card-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 2px; }
+.line-eta-big { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 500; }
+.line-eta-big.ok { color: var(--green); }
+.line-eta-big.soon { color: var(--accent); }
+.line-eta-big.urgent { color: var(--red); }
+.line-eta-big.empty { color: var(--muted); }
+.line-card-body { padding: 11px 13px; }
+.line-stock-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.line-stock-big { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 500; color: var(--text); }
+.line-stock-big span { font-size: 0.72rem; color: var(--muted); font-weight: 400; }
+.line-rate-label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+.progress-bar-wrap { height: 7px; background: var(--surface3); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+.progress-bar-fill { height: 100%; border-radius: 4px; transition: width 1s linear; }
+
+/* Hoppers inside line */
+.hopper-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.hopper-mini { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
+.hopper-mini-label { font-size: 0.62rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+.hopper-mini-val { font-family: 'DM Mono', monospace; font-size: 0.9rem; color: var(--text); }
+.hopper-mini input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.82rem; padding: 5px 7px; outline: none; margin-top: 4px; min-height: 34px; }
+.hopper-mini input:focus { border-color: var(--accent); }
+
+.line-inputs { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: flex-end; padding-top: 10px; border-top: 1px solid var(--border); }
+.line-inputs .field label { font-size: 0.6rem; }
+.line-inputs input, .line-inputs select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.82rem; padding: 8px 9px; outline: none; min-height: 40px; }
+.line-inputs input:focus, .line-inputs select:focus { border-color: var(--accent); }
+.line-variety-badge { font-family: 'DM Mono', monospace; font-size: 0.68rem; background: rgba(232,197,71,0.12); color: var(--accent); border-radius: 4px; padding: 2px 8px; }
+
+/* COMPACT LINE CARD (All view) */
+.line-compact { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 13px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin-bottom: 6px; cursor: pointer; }
+.line-compact-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.9rem; letter-spacing: 1.5px; color: var(--text); }
+.line-compact-sub { font-size: 0.68rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+.line-compact-right { text-align: right; }
+.line-compact-stock { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--text); font-weight: 500; }
+.line-compact-eta { font-family: 'DM Mono', monospace; font-size: 0.72rem; }
+.compact-progress { height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; margin-top: 6px; grid-column: 1 / -1; }
+.compact-progress-fill { height: 100%; border-radius: 2px; }
+
+/* REPORT */
+.report-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; }
+.stat-card .stat-label { font-size: 0.62rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.stat-card .stat-value { font-family: 'DM Mono', monospace; font-size: 1.05rem; font-weight: 500; color: var(--accent); }
+.report-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+.report-section-header { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.report-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 2px; color: var(--accent); }
+.report-section-total { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--green); }
+.report-rows { padding: 4px 0; }
+.report-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.82rem; }
+.report-row:last-child { border-bottom: none; }
+.report-row-label { font-family: 'DM Mono', monospace; color: var(--muted); font-size: 0.75rem; }
+.report-row-val { font-family: 'DM Mono', monospace; color: var(--text); font-size: 0.82rem; }
+.report-group-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; letter-spacing: 2px; color: var(--muted); margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+
+/* FLOW */
+.flow-result-card { border-radius: 8px; padding: 14px; border: 1px solid var(--border); }
+.flow-verdict { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 2px; margin-bottom: 8px; }
+.flow-verdict.ok { color: var(--green); }
+.flow-verdict.warn { color: var(--accent); }
+.flow-verdict.critical { color: var(--red); }
+.flow-numbers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+.flow-num { background: var(--bg); border-radius: 7px; padding: 9px 6px; text-align: center; }
+.flow-num .fn-val { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 500; color: var(--text); }
+.flow-num .fn-label { font-size: 0.6rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+.flow-bar-wrap { height: 10px; background: var(--surface3); border-radius: 5px; overflow: hidden; margin: 10px 0 5px; position: relative; }
+.flow-bar-received { height: 100%; border-radius: 5px; }
+.flow-caption { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+.flow-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; letter-spacing: 2px; color: var(--muted); margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.flow-line-row { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 13px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
+.flow-line-label { font-family: 'Bebas Neue', sans-serif; font-size: 0.9rem; letter-spacing: 1.5px; color: var(--text); }
+.flow-line-rate { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+
+/* SCHEDULE */
+.rotation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.rotation-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 7px 8px; display: flex; flex-direction: column; gap: 4px; }
+.rotation-chip-label { font-family: 'Bebas Neue', sans-serif; font-size: 0.82rem; letter-spacing: 1.5px; color: var(--accent); }
+.rotation-chip input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.8rem; padding: 5px 6px; outline: none; text-align: center; min-height: 34px; }
+.rotation-chip input:focus { border-color: var(--accent); }
+.rotation-chip-unit { font-size: 0.58rem; color: var(--muted); text-align: center; }
+.sched-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+.sched-entry.late { border-color: var(--red); background: rgba(224,90,90,0.05); }
+.sched-entry.arrived { opacity: 0.45; }
+.sched-status { font-size: 1.1rem; flex-shrink: 0; }
+.sched-time-big { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 1px; flex-shrink: 0; width: 56px; }
+.sched-time-big.ok { color: var(--text); }
+.sched-time-big.late { color: var(--red); }
+.sched-time-big.arrived { color: var(--muted); }
+.sched-machine { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 1.5px; color: var(--accent); }
+.sched-meta { font-size: 0.7rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 1px; }
+.sched-avg { font-size: 0.7rem; color: var(--green); font-family: 'DM Mono', monospace; }
+.sched-late-badge { display: inline-block; background: var(--red); color: white; border-radius: 4px; font-size: 0.65rem; font-family: 'DM Mono', monospace; padding: 1px 6px; margin-left: 4px; }
+.sched-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.82rem; letter-spacing: 2px; color: var(--muted); margin: 12px 0 7px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+
+/* PIN SCREEN */
+#pinScreen { position: fixed; inset: 0; background: var(--bg); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.pin-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: var(--radius); padding: 32px 24px; width: 100%; max-width: 300px; text-align: center; }
+.pin-card h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 3px; color: var(--accent); margin-bottom: 6px; }
+.pin-card p { font-size: 0.8rem; color: var(--muted); margin-bottom: 22px; }
+.pin-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 1.4rem; letter-spacing: 8px; text-align: center; padding: 12px; outline: none; margin-bottom: 12px; min-height: 52px; }
+.pin-input:focus { border-color: var(--accent); }
+.pin-error { color: var(--red); font-size: 0.78rem; margin-bottom: 12px; min-height: 18px; }
+.pin-role-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+.pin-role-badge.manager { background: rgba(232,197,71,0.15); color: var(--accent); border: 1px solid var(--accent); }
+.pin-role-badge.operator { background: rgba(76,175,118,0.12); color: var(--green); border: 1px solid var(--green); }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; align-items: flex-end; justify-content: center; padding: 0; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: var(--radius) var(--radius) 0 0; padding: 22px 18px 32px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.modal h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 2px; color: var(--accent); margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen">
+  <div class="pin-card">
+    <h2>🫒 Harvest</h2>
+    <p>Enter your PIN to continue</p>
+    <input class="pin-input" type="password" inputmode="numeric" maxlength="4" id="pinInput" placeholder="····">
+    <div class="pin-error" id="pinError"></div>
+    <button class="btn btn-primary btn-full" onclick="submitPin()">Enter</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-left">
+    <h1>🫒 Harvest</h1>
+    <span id="roleBadge"></span>
+  </div>
+  <div class="header-right">
+    <span id="clock">--:--</span>
+    <div class="status-pill"><div id="statusDot"></div><span id="statusLabel">…</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="lockApp()" style="font-size:0.7rem;padding:6px 10px;min-height:34px;">🔒</button>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showPage('log')">📥 Log</button>
+  <button class="nav-btn" onclick="showPage('lines')">⚙️ Lines</button>
+  <button class="nav-btn" onclick="showPage('flow')">🧮 Flow</button>
+  <button class="nav-btn" onclick="showPage('schedule')">📅 Schedule</button>
+  <button class="nav-btn" onclick="showPage('entries')">📋 Entries</button>
+  <button class="nav-btn" onclick="showPage('report')">📊 Report</button>
+</nav>
+
+<!-- ══ LOG ══ -->
+<div class="page active" id="page-log">
+  <div id="flash" class="flash"></div>
+  <div class="form-card">
+    <h2>New Arrival</h2>
+    <div class="form-grid">
+      <div class="field" id="fld-machine">
+        <label>Machine</label>
+        <div class="select-wrap">
+          <select id="fMachine">
+            <option value="">Select…</option>
+            <option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option>
+            <option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option>
+            <option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="fld-variety">
+        <label>Variety</label>
+        <div class="select-wrap">
+          <select id="fVariety">
+            <option value="">Select…</option>
+            <option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option>
+            <option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;" id="fld-area">
+      <label>Area / Block</label>
+      <div class="area-dropdown-wrap">
+        <div class="area-input-row">
+          <input type="text" id="fArea" placeholder="Select or type…" autocomplete="off" oninput="filterAreas()" onfocus="openAreaDropdown()">
+          <button class="area-toggle-btn" onclick="toggleAreaDropdown()">▾</button>
+        </div>
+        <div class="area-dropdown-list" id="areaDropdown"></div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;" id="fld-hopper">
+      <label>Hopper</label>
+      <div class="hopper-pills" id="hopperPills">
+        <div class="hopper-pill" onclick="selectHopper(this,'H2')">H2</div>
+        <div class="hopper-pill" onclick="selectHopper(this,'H3')">H3</div>
+        <div class="hopper-pill" onclick="selectHopper(this,'H4')">H4</div>
+        <div class="hopper-pill" onclick="selectHopper(this,'H5')">H5</div>
+        <div class="hopper-pill" onclick="selectHopper(this,'H6')">H6</div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;" id="fld-side">
+      <label>Line / Side</label>
+      <div class="side-pills" id="sidePills">
+        <div class="side-pill" onclick="selectSide(this,'Left')">◀ Left</div>
+        <div class="side-pill" onclick="selectSide(this,'Right')">Right ▶</div>
+        <div class="side-pill" onclick="selectSide(this,'Both')">⬌ Both</div>
+      </div>
+    </div>
+
+    <div id="weightSingle" style="margin-bottom:10px;">
+      <div class="field" id="fld-tons"><label>Weight (kg)</label><input type="number" id="fTons" placeholder="0" min="0" inputmode="numeric"></div>
+    </div>
+    <div id="weightBoth" style="display:none;margin-bottom:10px;">
+      <div class="form-grid">
+        <div class="field"><label id="labelLeft">◀ Left (kg)</label><input type="number" id="fTonsLeft" placeholder="0" min="0" inputmode="numeric" oninput="updateBothTotal()"></div>
+        <div class="field"><label id="labelRight">Right ▶ (kg)</label><input type="number" id="fTonsRight" placeholder="0" min="0" inputmode="numeric" oninput="updateBothTotal()"></div>
+      </div>
+      <div id="bothTotal" style="text-align:right;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);margin-top:3px;">Total: 0 kg</div>
+    </div>
+
+    <div class="field" style="margin-bottom:14px;" id="fld-time">
+      <label>Time</label>
+      <div class="time-row">
+        <input type="time" id="fTime">
+        <button class="time-now-btn" onclick="setNow()">⏱ Now</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="submitEntry()" style="font-size:1rem;padding:14px;">+ Log Arrival</button>
+  </div>
+</div>
+
+<!-- ══ LINES ══ -->
+<div class="page" id="page-lines">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;">Live Lines</div><div style="font-size:0.68rem;color:var(--muted);margin-top:1px;">Updates every 10s</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="openResetModal()">🔄 Reset</button>
+  </div>
+  <div class="filter-row" id="linesFilterRow">
+    <div class="filter-chip active" onclick="setLineFilter('ALL',this)">All</div>
+    <div class="filter-chip" onclick="setLineFilter('H2',this)">H2</div>
+    <div class="filter-chip" onclick="setLineFilter('H3',this)">H3</div>
+    <div class="filter-chip" onclick="setLineFilter('H4',this)">H4</div>
+    <div class="filter-chip" onclick="setLineFilter('H5',this)">H5</div>
+    <div class="filter-chip" onclick="setLineFilter('H6',this)">H6</div>
+  </div>
+  <div id="linesGrid"></div>
+</div>
+
+<!-- ══ FLOW ══ -->
+<div class="page" id="page-flow">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">Fruit Flow Calculator</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-bottom:14px;">Based on logged arrivals vs processing capacity</div>
+  <div class="form-card">
+    <div class="form-grid" style="margin-bottom:12px;">
+      <div class="field"><label>Variety</label><div class="select-wrap"><select id="flowVariety" onchange="calcFlow()"><option value="">Select…</option><option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option><option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option></select></div></div>
+      <div class="field"><label>Period</label><div class="select-wrap"><select id="flowPeriod" onchange="calcFlow()"><option value="2">Last 2h</option><option value="4" selected>Last 4h</option><option value="6">Last 6h</option><option value="8">Last 8h</option><option value="12">Last 12h</option></select></div></div>
+    </div>
+    <div id="flowResult"></div>
+  </div>
+  <div id="flowLines"></div>
+</div>
+
+<!-- ══ SCHEDULE ══ -->
+<div class="page" id="page-schedule">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;">Arrival Schedule</div><div style="font-size:0.68rem;color:var(--muted);margin-top:1px;">Auto-updated on every log</div></div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleRotations()" id="rotToggleBtn">⏱ Rotations</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddPrediction()">+ Add</button>
+    </div>
+  </div>
+  <div id="rotationPanel" style="display:none;margin-bottom:12px;">
+    <div class="form-card"><div style="font-family:'Bebas Neue',sans-serif;font-size:0.9rem;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">Rotation Times</div><div id="rotationGrid"></div></div>
+  </div>
+  <div id="scheduleList"></div>
+</div>
+
+<!-- ══ ENTRIES ══ -->
+<div class="page" id="page-entries">
+  <div class="log-header"><h2>All Entries</h2><button class="btn btn-danger btn-sm" onclick="confirmClearAll()">Clear All</button></div>
+  <div class="filter-row" id="filterRow">
+    <div class="filter-chip active" onclick="setFilter('ALL',this)">All</div>
+    <div class="filter-chip" onclick="setFilter('H2',this)">H2</div>
+    <div class="filter-chip" onclick="setFilter('H3',this)">H3</div>
+    <div class="filter-chip" onclick="setFilter('H4',this)">H4</div>
+    <div class="filter-chip" onclick="setFilter('H5',this)">H5</div>
+    <div class="filter-chip" onclick="setFilter('H6',this)">H6</div>
+  </div>
+  <div class="log-entries" id="logEntries"></div>
+</div>
+
+<!-- ══ REPORT ══ -->
+<div class="page" id="page-report"><div id="reportContent"></div></div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="addPredModal">
+  <div class="modal">
+    <h3>Add Prediction</h3>
+    <div class="field" style="margin-bottom:12px;"><label>Machine</label><div class="select-wrap"><select id="predMachine" onchange="prefillRotation()"><option value="">Select…</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option></select></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
+      <div class="field"><label>Last arrival time</label><input type="time" id="predLastTime"></div>
+      <div class="field"><label>Rotation (hours)</label><input type="number" id="predRotation" step="0.5" min="0.5" max="8" placeholder="3"></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeAddPrediction()">Cancel</button><button class="btn btn-primary" onclick="saveAddPrediction()">Add</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Delete Entry?</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:4px;">This cannot be undone.</p>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button><button class="btn btn-danger" onclick="confirmDelete()">Delete</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>Edit Entry</h3>
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div class="field"><label>Machine</label><div class="select-wrap"><select id="eMachine"><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option></select></div></div>
+      <div class="field"><label>Variety</label><div class="select-wrap"><select id="eVariety"><option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option><option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option></select></div></div>
+    </div>
+    <div class="field" style="margin-bottom:10px;"><label>Area</label><input type="text" id="eArea"></div>
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div class="field"><label>Hopper</label><div class="select-wrap"><select id="eHopper"><option>H2</option><option>H3</option><option>H4</option><option>H5</option><option>H6</option></select></div></div>
+      <div class="field"><label>Side</label><div class="select-wrap"><select id="eSide"><option>Left</option><option>Right</option></select></div></div>
+    </div>
+    <div class="form-grid" style="margin-bottom:4px;">
+      <div class="field"><label>Weight (kg)</label><input type="number" id="eTons" min="0" inputmode="numeric"></div>
+      <div class="field"><label>Time</label><input type="time" id="eTime"></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditEntry()">Save</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resetModal">
+  <div class="modal">
+    <h3>Reset Shift</h3>
+    <p style="color:var(--muted);font-size:0.82rem;margin-bottom:16px;">Resets all line stocks and rates. Use at shift start.</p>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeResetModal()">Cancel</button><button class="btn btn-danger" onclick="confirmResetShift()">Reset</button></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue, remove, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAerzO4tQCb1XX3QqUoQNaoh6Nj0b_6POM",
+  authDomain: "truck-coordinator.firebaseapp.com",
+  projectId: "truck-coordinator",
+  storageBucket: "truck-coordinator.firebasestorage.app",
+  messagingSenderId: "944152388504",
+  appId: "1:944152388504:web:4d4512ce5de9844d6941ed",
+  databaseURL: "https://truck-coordinator-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── CONSTANTS ──
+const MACHINES = ['BB14','TC2','TC3','TC6','TC7','TC10','TC11','TC12','TC15','OP1','OP2','OP3','OP4','PEL'];
+const VARIETIES = ['Picual','Coratina','ABQ','Koro','Frantoio','Manza','Hoji','Leccino','Pendo','Chemlali'];
+const ALL_AREAS = ["O'Donnell's","Parkers","Logans","McGraths","Hummels","Edgars","Keiths","Kines","Lewis","Barries","Beatons","Gills","Evans","Lanyons","Pearces","Dam","Flips","Wychitella","Cables","James","Andrews","Moloneys","Geary","Omearas","West","Mathews","Fitz","Jonathan","Pinks","Arthur","Weavers","Allison's"];
+const LINE_DEFS = [
+  {id:'L3', label:'Line 3', hopper:'H2', side:'Left',  hoppers:['H1','H2']},
+  {id:'L4', label:'Line 4', hopper:'H2', side:'Right', hoppers:['H3','H4']},
+  {id:'L5', label:'Line 5', hopper:'H3', side:'Left',  hoppers:['H1','H2']},
+  {id:'L6', label:'Line 6', hopper:'H3', side:'Right', hoppers:['H3','H4']},
+  {id:'L7', label:'Line 7', hopper:'H4', side:'Left',  hoppers:['H1','H2']},
+  {id:'L8', label:'Line 8', hopper:'H4', side:'Right', hoppers:['H3','H4']},
+  {id:'L9', label:'Line 9', hopper:'H5', side:'Left',  hoppers:['H1','H2']},
+  {id:'L10',label:'Line 10',hopper:'H5', side:'Right', hoppers:['H3','H4']},
+  {id:'L11',label:'Line 11',hopper:'H6', side:'Left',  hoppers:['H1','H2']},
+  {id:'L12',label:'Line 12',hopper:'H6', side:'Right', hoppers:['H3','H4']},
+];
+
+// ── STATE ──
+let entries = {}, lineData = {}, rotations = {}, predictions = {};
+let activeFilter = 'ALL', activeLineFilter = 'ALL';
+let pendingDeleteKey = null, editingKey = null;
+let selectedHopper = '', selectedSide = '';
+let lastVariety = '';
+let areaCounts = {};
+
+// ── FIREBASE ──
+const entriesRef = ref(db, 'arrivals');
+const linesRef = ref(db, 'lineData');
+const rotationsRef = ref(db, 'rotations');
+const predictionsRef = ref(db, 'predictions');
+
+onValue(entriesRef, snap => {
+  entries = snap.val() || {};
+  computeAreaCounts();
+  setStatus('live');
+  if (document.getElementById('page-entries').classList.contains('active')) renderEntries();
+  if (document.getElementById('page-report').classList.contains('active')) renderReport();
+}, () => setStatus('error'));
+
+onValue(linesRef, snap => { lineData = snap.val() || {}; if (document.getElementById('page-lines').classList.contains('active')) renderLines(); });
+onValue(rotationsRef, snap => { rotations = snap.val() || {}; renderRotationGrid(); });
+onValue(predictionsRef, snap => { predictions = snap.val() || {}; if (document.getElementById('page-schedule').classList.contains('active')) renderSchedule(); });
+
+function setStatus(s) {
+  const dot = document.getElementById('statusDot'), lbl = document.getElementById('statusLabel');
+  if (s==='live'){dot.style.background='var(--green)';lbl.textContent='Live';}
+  else if(s==='error'){dot.style.background='var(--red)';lbl.textContent='Offline';}
+  else{dot.style.background='var(--muted)';lbl.textContent='…';}
+}
+setStatus('connecting');
+
+// ── PIN AUTH ──
+const PINS = {'1234':'operator','1512':'manager'};
+let userRole = null;
+function initAuth() {
+  const saved = sessionStorage.getItem('harvest_role');
+  if (saved==='operator'||saved==='manager') unlockApp(saved);
+  document.getElementById('pinInput').addEventListener('keydown', e => { if(e.key==='Enter') submitPin(); });
+}
+window.submitPin = () => {
+  const pin = document.getElementById('pinInput').value.trim();
+  const role = PINS[pin];
+  if (role) { sessionStorage.setItem('harvest_role', role); unlockApp(role); }
+  else { document.getElementById('pinError').textContent='Incorrect PIN. Try again.'; document.getElementById('pinInput').value=''; }
+};
+function unlockApp(role) {
+  userRole = role;
+  document.getElementById('pinScreen').style.display = 'none';
+  const navBtns = document.querySelectorAll('.nav-btn');
+  if (role==='operator') { [1,2,3,5].forEach(i => navBtns[i].style.display='none'); }
+  const badge = document.getElementById('roleBadge');
+  badge.className = `pin-role-badge ${role}`;
+  badge.textContent = role==='manager' ? '★ Manager' : 'Operator';
+}
+window.lockApp = () => {
+  sessionStorage.removeItem('harvest_role'); userRole = null;
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinScreen').style.display = 'flex';
+  document.querySelectorAll('.nav-btn').forEach(b => b.style.display='');
+};
+initAuth();
+
+// ── CLOCK ──
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent = String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+setInterval(tick,1000); tick();
+setInterval(()=>{ if(document.getElementById('page-lines').classList.contains('active')) renderLines(); },10000);
+setInterval(()=>{ if(document.getElementById('page-schedule').classList.contains('active')) renderSchedule(); },30000);
+
+// ── NAVIGATION ──
+window.showPage = (id) => {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const idx={log:0,lines:1,flow:2,schedule:3,entries:4,report:5}[id];
+  document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  if(id==='report') renderReport();
+  if(id==='entries') renderEntries();
+  if(id==='lines') renderLines();
+  if(id==='flow') calcFlow();
+  if(id==='schedule') renderSchedule();
+};
+
+// ── AREA DROPDOWN ──
+function computeAreaCounts() {
+  areaCounts = {};
+  Object.values(entries).forEach(e => {
+    if(e.area) areaCounts[e.area] = (areaCounts[e.area]||0)+1;
+  });
+}
+function getSortedAreas(filter='') {
+  const f = filter.toLowerCase();
+  const counted = ALL_AREAS.filter(a=>a.toLowerCase().includes(f)).map(a=>({name:a,count:areaCounts[a]||0}));
+  return counted.sort((a,b)=>b.count-a.count||(a.name>b.name?1:-1));
+}
+function renderAreaDropdown(filter='') {
+  const list = document.getElementById('areaDropdown');
+  const areas = getSortedAreas(filter);
+  list.innerHTML = areas.map(a=>`<div class="area-option" onclick="selectArea('${esc(a.name)}')">${esc(a.name)}${a.count?`<span class="area-count">${a.count}</span>`:''}</div>`).join('');
+}
+window.openAreaDropdown = () => { renderAreaDropdown(document.getElementById('fArea').value); document.getElementById('areaDropdown').classList.add('open'); };
+window.toggleAreaDropdown = () => {
+  const dd = document.getElementById('areaDropdown');
+  if(dd.classList.contains('open')) { dd.classList.remove('open'); } else { renderAreaDropdown(''); dd.classList.add('open'); }
+};
+window.filterAreas = () => { renderAreaDropdown(document.getElementById('fArea').value); document.getElementById('areaDropdown').classList.add('open'); };
+window.selectArea = (name) => { document.getElementById('fArea').value=name; document.getElementById('areaDropdown').classList.remove('open'); };
+document.addEventListener('click', e => { if(!e.target.closest('.area-dropdown-wrap')) document.getElementById('areaDropdown').classList.remove('open'); });
+
+// ── LOG FORM ──
+window.selectHopper = (el, val) => {
+  document.querySelectorAll('.hopper-pill').forEach(p=>p.classList.remove('selected','error'));
+  el.classList.add('selected');
+  selectedHopper = val;
+  document.getElementById('fld-hopper').classList.remove('error');
+  if(selectedSide==='Both') updateBothLabels();
+};
+window.selectSide = (el, val) => {
+  document.querySelectorAll('.side-pill').forEach(p=>p.classList.remove('selected','error'));
+  el.classList.add('selected');
+  selectedSide = val;
+  document.getElementById('fld-side').classList.remove('error');
+  const isBoth = val==='Both';
+  document.getElementById('weightSingle').style.display = isBoth?'none':'block';
+  document.getElementById('weightBoth').style.display = isBoth?'block':'none';
+  if(isBoth) updateBothLabels();
+};
+function updateBothLabels() {
+  const lm = {H2:{Left:3,Right:4},H3:{Left:5,Right:6},H4:{Left:7,Right:8},H5:{Left:9,Right:10},H6:{Left:11,Right:12}};
+  document.getElementById('labelLeft').textContent = selectedHopper?`◀ Left — Line ${lm[selectedHopper]?.Left||'?'} (kg)`:'◀ Left (kg)';
+  document.getElementById('labelRight').textContent = selectedHopper?`Right ▶ — Line ${lm[selectedHopper]?.Right||'?'} (kg)`:'Right ▶ (kg)';
+}
+window.updateBothTotal = () => {
+  const l=parseInt(document.getElementById('fTonsLeft').value)||0;
+  const r=parseInt(document.getElementById('fTonsRight').value)||0;
+  document.getElementById('bothTotal').textContent=`Total: ${(l+r).toLocaleString('en-GB')} kg`;
+};
+window.setNow = () => {
+  const n=new Date();
+  document.getElementById('fTime').value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+};
+window.setNow();
+
+function clearErrors() {
+  ['fld-machine','fld-variety','fld-area','fld-hopper','fld-side','fld-tons','fld-time'].forEach(id=>{
+    document.getElementById(id)?.classList.remove('error');
+  });
+  document.querySelectorAll('.hopper-pill, .side-pill').forEach(p=>p.classList.remove('error'));
+}
+
+window.submitEntry = async () => {
+  clearErrors();
+  const machine = document.getElementById('fMachine').value;
+  const variety = document.getElementById('fVariety').value;
+  const area    = document.getElementById('fArea').value.trim();
+  const time    = document.getElementById('fTime').value;
+  const lm = {H2:{Left:3,Right:4},H3:{Left:5,Right:6},H4:{Left:7,Right:8},H5:{Left:9,Right:10},H6:{Left:11,Right:12}};
+
+  let hasError = false;
+  if(!machine){document.getElementById('fld-machine').classList.add('error');hasError=true;}
+  if(!variety){document.getElementById('fld-variety').classList.add('error');hasError=true;}
+  if(!selectedHopper){document.getElementById('fld-hopper').classList.add('error');document.querySelectorAll('.hopper-pill').forEach(p=>p.classList.add('error'));hasError=true;}
+  if(!selectedSide){document.getElementById('fld-side').classList.add('error');document.querySelectorAll('.side-pill').forEach(p=>p.classList.add('error'));hasError=true;}
+  if(!time){document.getElementById('fld-time').classList.add('error');hasError=true;}
+  if(hasError){flashMsg('⚠️ Please fill in all required fields.', false);return;}
+
+  if(selectedSide==='Both') {
+    const tL=parseInt(document.getElementById('fTonsLeft').value)||0;
+    const tR=parseInt(document.getElementById('fTonsRight').value)||0;
+    if(!tL&&!tR){flashMsg('⚠️ Enter weight for at least one side.',false);return;}
+    const base={machine,variety,area,hopper:selectedHopper,time,ts:Date.now(),splitFrom:'Both'};
+    if(tL){await push(entriesRef,{...base,side:'Left',tons:tL});await addTonsToLine(selectedHopper,'Left',tL);}
+    if(tR){await push(entriesRef,{...base,side:'Right',tons:tR});await addTonsToLine(selectedHopper,'Right',tR);}
+    await createNextPrediction(machine,time);
+    const lL=lm[selectedHopper]?.Left||'?', lR=lm[selectedHopper]?.Right||'?';
+    const parts=[];
+    if(tL) parts.push(`L${lL}: ${tL.toLocaleString('en-GB')} kg`);
+    if(tR) parts.push(`L${lR}: ${tR.toLocaleString('en-GB')} kg`);
+    flashMsg(`✓ ${machine} — Both → ${selectedHopper} · ${parts.join(' / ')}`, true);
+    document.getElementById('fTonsLeft').value='';
+    document.getElementById('fTonsRight').value='';
+    updateBothTotal();
+  } else {
+    const tons=document.getElementById('fTons').value;
+    if(!tons){document.getElementById('fld-tons').classList.add('error');flashMsg('⚠️ Enter weight.',false);return;}
+    const entry={machine,variety,area,hopper:selectedHopper,side:selectedSide,tons:parseInt(tons),time,ts:Date.now()};
+    await push(entriesRef,entry);
+    await addTonsToLine(selectedHopper,selectedSide,parseInt(tons));
+    await createNextPrediction(machine,time);
+    const lineNum=lm[selectedHopper]?.[selectedSide]||'?';
+    flashMsg(`✓ ${machine} — ${parseInt(tons).toLocaleString('en-GB')} kg → ${selectedHopper} Line ${lineNum} (${selectedSide})`, true);
+    document.getElementById('fTons').value='';
+  }
+
+  // Pre-select variety for next entry
+  lastVariety = variety;
+  document.getElementById('fMachine').value='';
+  document.getElementById('fArea').value='';
+  document.getElementById('fTime').value='';
+  window.setNow();
+  // Keep variety selected
+  document.getElementById('fVariety').value = lastVariety;
+};
+
+function flashMsg(msg, success) {
+  const el=document.getElementById('flash');
+  el.textContent=msg;
+  el.style.background=success?'rgba(76,175,118,0.18)':'rgba(224,90,90,0.15)';
+  el.style.border=`1px solid ${success?'var(--green)':'var(--red)'}`;
+  el.style.color=success?'var(--green)':'var(--red)';
+  el.style.fontSize=success?'1rem':'0.88rem';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ── ENTRIES ──
+window.setFilter=(val,el)=>{activeFilter=val;document.querySelectorAll('#filterRow .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderEntries();};
+function renderEntries() {
+  const lm={H2:{Left:3,Right:4},H3:{Left:5,Right:6},H4:{Left:7,Right:8},H5:{Left:9,Right:10},H6:{Left:11,Right:12}};
+  let list=Object.entries(entries).map(([k,v])=>({...v,_key:k})).sort((a,b)=>b.ts-a.ts);
+  if(activeFilter!=='ALL') list=list.filter(e=>e.hopper===activeFilter);
+  const container=document.getElementById('logEntries');
+  if(!list.length){container.innerHTML='<div class="empty-log"><div class="icon">📋</div>No entries yet.</div>';return;}
+  container.innerHTML=list.map(e=>{
+    const lineNum=lm[e.hopper]?.[e.side]||'?';
+    const splitBadge=e.splitFrom==='Both'?`<span style="background:rgba(90,158,224,0.15);color:var(--blue);border-radius:4px;padding:1px 5px;font-size:0.65rem;">split</span>`:'';
+    return `<div class="log-entry">
+      <div class="log-entry-time">${esc(e.time)}</div>
+      <div class="log-entry-main">
+        <div class="log-entry-machine">${esc(e.machine)}</div>
+        <div class="log-entry-meta">
+          <span class="variety-tag">${esc(e.variety)}</span>
+          <span class="hopper-tag">${esc(e.hopper)} L${lineNum} ${esc(e.side)}</span>
+          ${splitBadge}
+          ${e.area?`<span style="color:var(--muted);font-style:italic;">${esc(e.area)}</span>`:''}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="log-entry-tons">${parseInt(e.tons).toLocaleString('en-GB')} kg</div>
+        <div style="display:flex;gap:4px;margin-top:5px;justify-content:flex-end;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditEntry('${e._key}')" style="min-height:34px;padding:4px 10px;">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="openDelete('${e._key}')" style="min-height:34px;padding:4px 10px;">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DELETE ──
+window.openDelete=(key)=>{pendingDeleteKey=key;document.getElementById('deleteModal').classList.add('open');};
+window.closeDeleteModal=()=>{document.getElementById('deleteModal').classList.remove('open');pendingDeleteKey=null;};
+window.confirmDelete=async()=>{if(!pendingDeleteKey)return;await remove(ref(db,`arrivals/${pendingDeleteKey}`));window.closeDeleteModal();};
+window.confirmClearAll=()=>{if(!confirm('Delete ALL entries?'))return;set(entriesRef,null);};
+document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)window.closeDeleteModal();});
+
+// ── EDIT ENTRY ──
+window.openEditEntry=(key)=>{
+  editingKey=key; const e=entries[key];
+  document.getElementById('eMachine').value=e.machine||'';
+  document.getElementById('eVariety').value=e.variety||'';
+  document.getElementById('eArea').value=e.area||'';
+  document.getElementById('eHopper').value=e.hopper||'H2';
+  document.getElementById('eSide').value=e.side||'Left';
+  document.getElementById('eTons').value=e.tons||'';
+  document.getElementById('eTime').value=e.time||'';
+  document.getElementById('editModal').classList.add('open');
+};
+window.closeEditModal=()=>{document.getElementById('editModal').classList.remove('open');editingKey=null;};
+window.saveEditEntry=async()=>{
+  if(!editingKey)return;
+  await set(ref(db,`arrivals/${editingKey}`),{...entries[editingKey],machine:document.getElementById('eMachine').value,variety:document.getElementById('eVariety').value,area:document.getElementById('eArea').value.trim(),hopper:document.getElementById('eHopper').value,side:document.getElementById('eSide').value,tons:parseInt(document.getElementById('eTons').value)||0,time:document.getElementById('eTime').value});
+  window.closeEditModal();
+};
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)window.closeEditModal();});
+
+// ── LINES ──
+function calcCurrentStock(ld) {
+  if(!ld||!ld.stock) return 0;
+  if(!ld.rate||ld.rate<=0) return ld.stock;
+  const hrs=(Date.now()-ld.setAt)/3600000;
+  return Math.max(0, ld.stock-(hrs*ld.rate*1000));
+}
+async function addTonsToLine(hopper, side, tons) {
+  const def=LINE_DEFS.find(l=>l.hopper===hopper&&l.side===side);
+  if(!def)return;
+  const ld=lineData[def.id]||{stock:0,rate:4,setAt:Date.now(),peakStock:0};
+  const cur=calcCurrentStock(ld);
+  const newStock=cur+tons;
+  await set(ref(db,`lineData/${def.id}`),{...ld,stock:newStock,setAt:Date.now(),peakStock:Math.max(newStock,ld.peakStock||0)});
+}
+
+window.setLineFilter=(val,el)=>{activeLineFilter=val;document.querySelectorAll('#linesFilterRow .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderLines();};
+
+function renderLines() {
+  const container=document.getElementById('linesGrid');
+  if(!container)return;
+  const filtered=activeLineFilter==='ALL'?LINE_DEFS:LINE_DEFS.filter(l=>l.hopper===activeLineFilter);
+  const VARIETIES_LIST=['Picual','Coratina','ABQ','Koro','Frantoio','Manza','Hoji','Leccino','Pendo','Chemlali'];
+
+  if(activeLineFilter==='ALL') {
+    // Sort by ETA (soonest first, then empty, then no data last)
+    const withEta=filtered.map(def=>{
+      const ld=lineData[def.id]||{};
+      const stock=calcCurrentStock(ld);
+      const rate=ld.rate!==undefined?ld.rate:4;
+      const variety=ld.variety||'';
+      const peak=ld.peakStock||stock||1;
+      const pct=peak>0?Math.min(100,(stock/peak)*100):0;
+      let minsLeft=Infinity,etaTime='—',etaClass='empty';
+      if(stock>0&&rate>0){
+        const hoursLeft=stock/(rate*1000);
+        minsLeft=Math.round(hoursLeft*60);
+        const emptyAt=new Date(Date.now()+hoursLeft*3600000);
+        etaTime=String(emptyAt.getHours()).padStart(2,'0')+':'+String(emptyAt.getMinutes()).padStart(2,'0');
+        etaClass=minsLeft<30?'urgent':minsLeft<60?'soon':'ok';
+      } else if(stock===0){etaTime='Empty';etaClass='urgent';minsLeft=0;}
+      const barColor=stock/1000>5?'var(--green)':stock/1000>0?'var(--accent)':'var(--red)';
+      return {def,stock,rate,variety,pct,minsLeft,etaTime,etaClass,barColor};
+    }).sort((a,b)=>a.minsLeft-b.minsLeft);
+
+    // Check if any soon (<60min)
+    const soonLines=withEta.filter(x=>x.minsLeft<60&&x.minsLeft>0);
+    let html='';
+    if(soonLines.length){
+      html+=`<div style="font-family:'Bebas Neue',sans-serif;font-size:0.82rem;letter-spacing:2px;color:var(--red);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);">⚠️ Emptying Soon</div>`;
+    }
+
+    withEta.forEach(({def,stock,rate,variety,pct,minsLeft,etaTime,etaClass,barColor})=>{
+      const crushing=lineData[def.id]?.crushing||null;
+      const crushingBadge=crushing?`<span style="font-size:0.6rem;background:rgba(76,175,118,0.15);color:var(--green);border-radius:4px;padding:1px 5px;margin-left:4px;">H${crushing}▼</span>`:'';
+      html+=`<div class="line-compact" onclick="goToLine('${def.hopper}','${def.id}')">
+        <div style="min-width:0;">
+          <div class="line-compact-title">${def.label} <span style="font-size:0.62rem;color:var(--muted);">${def.hopper} ${def.side}</span>${crushingBadge}${variety?`<span style="font-size:0.62rem;color:var(--accent);margin-left:4px;">${variety}</span>`:''}</div>
+          <div class="line-compact-sub">${rate} t/h</div>
+        </div>
+        <div class="line-compact-right">
+          <div class="line-compact-stock">${(stock/1000).toFixed(1)}t</div>
+          <div class="line-compact-eta ${etaClass}">${etaTime}</div>
+        </div>
+        <div class="compact-progress"><div class="compact-progress-fill" style="width:${pct}%;background:${barColor};"></div></div>
+      </div>`;
+    });
+    container.innerHTML=html;
+    return;
+  }
+
+  // ── Detailed view ──
+  let html='<div class="lines-grid">';
+  filtered.forEach(def=>{
+    const ld=lineData[def.id]||{};
+    const stock=calcCurrentStock(ld);
+    const rate=ld.rate!==undefined?ld.rate:4;
+    const variety=ld.variety||'';
+    const peak=ld.peakStock||stock||1;
+    const pct=peak>0?Math.min(100,(stock/peak)*100):0;
+    const crushing=ld.crushing||null; // null, 'A', or 'B'
+    const hA=def.hoppers[0], hB=def.hoppers[1]; // e.g. 'H1','H2'
+    const hATons=ld.hATons||0, hBTons=ld.hBTons||0;
+
+    // ETA for whole line
+    let etaText='—',etaClass='empty',etaBig='—';
+    if(stock>0&&rate>0){
+      const hoursLeft=stock/(rate*1000);
+      const minsLeft=Math.round(hoursLeft*60);
+      const emptyAt=new Date(Date.now()+hoursLeft*3600000);
+      etaBig=String(emptyAt.getHours()).padStart(2,'0')+':'+String(emptyAt.getMinutes()).padStart(2,'0');
+      etaText=minsLeft>=60?`${Math.floor(minsLeft/60)}h ${minsLeft%60}m left`:`${minsLeft}m left`;
+      etaClass=minsLeft<30?'urgent':minsLeft<60?'soon':'ok';
+    } else if(stock===0){etaBig='Empty';etaText='';etaClass='urgent';}
+
+    // ETA for crushing hopper only
+    let crushEta='';
+    if(crushing&&rate>0){
+      const crushTons=crushing==='A'?hATons:hBTons;
+      if(crushTons>0){
+        const hLeft=crushTons/(rate*1000);
+        const mLeft=Math.round(hLeft*60);
+        const emptyAt=new Date(Date.now()+hLeft*3600000);
+        const t=String(emptyAt.getHours()).padStart(2,'0')+':'+String(emptyAt.getMinutes()).padStart(2,'0');
+        crushEta=`${hLeft<1?mLeft+'m':Math.floor(hLeft*10)/10+'h'} → empty ~${t}`;
+      }
+    }
+
+    const barColor=stock/1000>5?'var(--green)':stock/1000>0?'var(--accent)':'var(--red)';
+    const varOpts=VARIETIES_LIST.map(v=>`<option value="${v}" ${v===variety?'selected':''}>${v}</option>`).join('');
+
+    html+=`<div class="line-card">
+      <div class="line-card-header">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span class="line-card-title">${def.label} · ${def.hopper} ${def.side}</span>
+          ${variety?`<span class="line-variety-badge">${variety}</span>`:''}
+        </div>
+        <div style="text-align:right;">
+          <div class="line-eta-big ${etaClass}">${etaBig}</div>
+          <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;">${etaText}</div>
+        </div>
+      </div>
+      <div class="line-card-body">
+        <div class="line-stock-row">
+          <div class="line-stock-big">${(stock/1000).toFixed(2)} <span>t total</span></div>
+          <div class="line-rate-label">${rate} t/h</div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+
+        <!-- SETTINGS -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:7px;align-items:flex-end;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="field"><label>Variety</label><div class="select-wrap"><select id="variety_${def.id}" style="appearance:none;-webkit-appearance:none;padding-right:22px;font-size:0.8rem;"><option value="">—</option>${varOpts}</select><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:0.75rem;">▾</span></div></div>
+          <div class="field"><label>Stock (t)</label><input type="number" id="stock_${def.id}" placeholder="${(stock/1000).toFixed(2)}" step="0.1" min="0" style="font-size:0.85rem;padding:8px 9px;min-height:40px;"></div>
+          <div class="field"><label>Rate (t/h)</label><input type="number" id="rate_${def.id}" placeholder="${rate}" step="0.5" min="0" style="font-size:0.85rem;padding:8px 9px;min-height:40px;"></div>
+          <button class="btn btn-primary btn-sm" onclick="saveLine('${def.id}')" style="align-self:flex-end;">Set</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  container.innerHTML=html;
+
+  // Attach hopper input listeners
+  filtered.forEach(def=>{
+    ['A','B'].forEach(key=>{
+      const el=document.getElementById(`h${key}_${def.id}`);
+      if(el) el.addEventListener('change',()=>saveHopperTons(def.id,`h${key}Tons`,parseFloat(el.value)||0));
+    });
+  });
+}
+
+window.setCrushing=async(lineId, key)=>{
+  const current=lineData[lineId]?.crushing;
+  // Toggle off if already selected
+  const newVal=current===key?null:key;
+  await set(ref(db,`lineData/${lineId}/crushing`),newVal);
+};
+
+window.goToLine=(hopper,lineId)=>{
+  // Switch to hopper filter and scroll to line
+  const chipIdx=['H2','H3','H4','H5','H6'].indexOf(hopper)+2;
+  const chip=document.querySelector(`#linesFilterRow .filter-chip:nth-child(${chipIdx})`);
+  if(chip) setLineFilter(hopper,chip);
+};
+
+async function saveHopperTons(lineId, key, valT) {
+  const kg = valT * 1000;
+  const existing = lineData[lineId] || {stock:0, rate:4, setAt:Date.now(), peakStock:0};
+  const hATons = key==='hATons' ? kg : (existing.hATons||0);
+  const hBTons = key==='hBTons' ? kg : (existing.hBTons||0);
+  const newStock = hATons + hBTons;
+  await set(ref(db, `lineData/${lineId}`), {
+    ...existing,
+    [key]: kg,
+    stock: newStock,
+    setAt: Date.now(),
+    peakStock: Math.max(newStock, existing.peakStock||0)
+  });
+}
+
+window.saveLine=async(lineId)=>{
+  const stockEl=document.getElementById(`stock_${lineId}`);
+  const rateEl=document.getElementById(`rate_${lineId}`);
+  const varEl=document.getElementById(`variety_${lineId}`);
+  const stockVal=stockEl.value!==''?parseFloat(stockEl.value)*1000:null;
+  const rateVal=rateEl.value!==''?parseFloat(rateEl.value):null;
+  const varVal=varEl?.value||null;
+  const existing=lineData[lineId]||{stock:0,rate:4,setAt:Date.now(),peakStock:0};
+  const newStock=stockVal!==null?stockVal:calcCurrentStock(existing);
+  const newRate=rateVal!==null?rateVal:(existing.rate??4);
+  const newVariety=varVal!==null?varVal:(existing.variety||'');
+  await set(ref(db,`lineData/${lineId}`),{...existing,stock:newStock,rate:newRate,variety:newVariety,setAt:Date.now(),peakStock:Math.max(newStock,existing.peakStock||0)});
+  stockEl.value=''; rateEl.value='';
+};
+
+window.openResetModal=()=>document.getElementById('resetModal').classList.add('open');
+window.closeResetModal=()=>document.getElementById('resetModal').classList.remove('open');
+window.confirmResetShift=async()=>{await set(linesRef,null);window.closeResetModal();};
+document.getElementById('resetModal').addEventListener('click',function(e){if(e.target===this)window.closeResetModal();});
+
+// ── SCHEDULE ──
+function renderRotationGrid() {
+  const el=document.getElementById('rotationGrid');
+  if(!el)return;
+  el.className='rotation-grid';
+  el.innerHTML=MACHINES.map(m=>`<div class="rotation-chip"><div class="rotation-chip-label">${m}</div><input type="number" id="rot_${m}" value="${rotations[m]||3}" placeholder="3" step="0.5" min="0.5" max="8" onchange="saveRotation('${m}',this.value)"><div class="rotation-chip-unit">hours</div></div>`).join('');
+}
+window.toggleRotations=()=>{
+  const panel=document.getElementById('rotationPanel'),btn=document.getElementById('rotToggleBtn');
+  const open=panel.style.display!=='none';
+  panel.style.display=open?'none':'block';
+  btn.textContent=open?'⏱ Rotations':'✕ Close';
+};
+window.saveRotation=async(machine,val)=>{const h=parseFloat(val);if(!h||h<=0)return;await set(ref(db,`rotations/${machine}`),h);};
+
+function renderSchedule() {
+  const container=document.getElementById('scheduleList');
+  if(!container)return;
+  const now=Date.now();
+  const list=Object.entries(predictions).map(([k,v])=>({...v,_key:k}))
+    .filter(p=>!p.arrivedTs||(now-p.arrivedTs)<3600000)
+    .sort((a,b)=>a.predictedTs-b.predictedTs);
+
+  if(!list.length){container.innerHTML='<div class="empty-log"><div class="icon">📅</div>No predictions yet.<br><span style="font-size:0.78rem;">Created automatically when you log an arrival.</span></div>';return;}
+
+  const upcoming=list.filter(p=>!p.arrivedTs&&p.predictedTs>=now);
+  const late=list.filter(p=>!p.arrivedTs&&p.predictedTs<now);
+  const arrived=list.filter(p=>p.arrivedTs);
+
+  // Avg tons per machine from entries
+  const machineTotals={};
+  Object.values(entries).forEach(e=>{
+    if(!machineTotals[e.machine]) machineTotals[e.machine]={sum:0,count:0};
+    machineTotals[e.machine].sum+=(parseInt(e.tons)||0);
+    machineTotals[e.machine].count++;
+  });
+
+  // Down machines
+  const downMachines=getDownMachines();
+  const activeCount=upcoming.filter(p=>!downMachines.has(p.machine)).length;
+  const downCount=downMachines.size;
+
+  let html='';
+  // Status bar
+  if(upcoming.length||late.length){
+    html+=`<div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div style="flex:1;background:rgba(76,175,118,0.1);border:1px solid var(--green);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--green);">${activeCount}</div>
+        <div style="font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Active</div>
+      </div>
+      <div style="flex:1;background:rgba(224,90,90,0.1);border:1px solid ${late.length?'var(--red)':'var(--border)'};border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--red);">${late.length}</div>
+        <div style="font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Late</div>
+      </div>
+      <div style="flex:1;background:rgba(119,119,119,0.1);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--muted);">${downCount}</div>
+        <div style="font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Down</div>
+      </div>
+    </div>`;
+  }
+
+  if(late.length){html+=`<div class="sched-section-title">🔴 Late (${late.length})</div>`;late.forEach(p=>{html+=schedCard(p,'late',machineTotals,downMachines);});}
+  if(upcoming.length){html+=`<div class="sched-section-title">🕐 Upcoming (${upcoming.length})</div>`;upcoming.forEach(p=>{html+=schedCard(p,'upcoming',machineTotals,downMachines);});}
+  if(arrived.length){html+=`<div class="sched-section-title">✅ Arrived</div>`;arrived.forEach(p=>{html+=schedCard(p,'arrived',machineTotals,downMachines);});}
+  container.innerHTML=html;
+}
+
+function getDownMachines() {
+  const down=new Set();
+  Object.values(predictions).forEach(p=>{if(p.isDown) down.add(p.machine);});
+  return down;
+}
+
+function schedCard(p,status,machineTotals,downMachines) {
+  const isDown=downMachines&&downMachines.has(p.machine);
+  const timeStr=new Date(p.predictedTs).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const minsLate=status==='late'?Math.round((Date.now()-p.predictedTs)/60000):0;
+  const lateBadge=status==='late'?`<span class="sched-late-badge">${minsLate}m late</span>`:'';
+  const mt=machineTotals[p.machine];
+  const avg=mt&&mt.count>0?Math.round(mt.sum/mt.count/1000*10)/10:null;
+
+  // Find variety from most recent entries for this machine
+  const machineEntries=Object.values(entries).filter(e=>e.machine===p.machine).sort((a,b)=>b.ts-a.ts);
+  const lastVariety=machineEntries.length?machineEntries[0].variety:'';
+
+  const downStyle=isDown?'opacity:0.45;':'';
+  return `<div class="sched-entry ${status}" style="${downStyle}">
+    <div style="flex-shrink:0;text-align:center;min-width:52px;">
+      <div class="sched-time-big ${status==='arrived'?'arrived':status==='late'?'late':'ok'}">${timeStr}</div>
+      ${status==='late'?`<div style="font-size:0.6rem;color:var(--red);font-family:'DM Mono',monospace;">${minsLate}m late</div>`:''}
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div class="sched-machine">${esc(p.machine)} ${isDown?`<span style="background:var(--muted);color:var(--bg);border-radius:4px;font-size:0.62rem;padding:1px 6px;font-family:'DM Sans',sans-serif;">DOWN</span>`:lateBadge}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+        ${lastVariety?`<span style="background:rgba(232,197,71,0.12);color:var(--accent);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">${esc(lastVariety)}</span>`:''}
+        ${p.rotation?`<span style="background:var(--surface2);color:var(--muted);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">⏱ ${p.rotation}h</span>`:''}
+        ${avg!==null?`<span style="background:rgba(76,175,118,0.12);color:var(--green);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">~${avg}t avg</span>`:''}
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">
+      ${status!=='arrived'?`<button onclick="toggleDown('${p._key}','${p.machine}')" style="background:${isDown?'var(--muted)':'transparent'};border:1px solid ${isDown?'var(--muted)':'var(--border)'};border-radius:6px;color:${isDown?'var(--bg)':'var(--muted)'};font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:600;padding:0 8px;cursor:pointer;min-height:36px;">${isDown?'▲ Up':'▼ Down'}</button>`:''}
+      ${status!=='arrived'?`<button class="btn btn-ghost btn-sm" onclick="markArrived('${p._key}')" style="min-height:36px;">✓</button>`:''}
+      <button class="btn btn-danger btn-sm" onclick="deletePrediction('${p._key}')" style="min-height:36px;">🗑</button>
+    </div>
+  </div>`;
+}
+
+window.toggleDown=async(key,machine)=>{
+  // Toggle down for ALL pending predictions of this machine
+  const isCurrentlyDown=predictions[key]?.isDown||false;
+  const newVal=!isCurrentlyDown;
+  const updates=Object.entries(predictions)
+    .filter(([k,p])=>p.machine===machine&&!p.arrivedTs)
+    .map(([k])=>set(ref(db,`predictions/${k}/isDown`),newVal));
+  await Promise.all(updates);
+};
+
+window.markArrived=async(key)=>await set(ref(db,`predictions/${key}/arrivedTs`),Date.now());
+window.deletePrediction=async(key)=>await remove(ref(db,`predictions/${key}`));
+
+window.openAddPrediction=()=>{
+  const n=new Date();
+  document.getElementById('predLastTime').value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('predMachine').value='';
+  document.getElementById('predRotation').value='';
+  document.getElementById('addPredModal').classList.add('open');
+};
+window.closeAddPrediction=()=>document.getElementById('addPredModal').classList.remove('open');
+window.prefillRotation=()=>{const m=document.getElementById('predMachine').value;if(m&&rotations[m])document.getElementById('predRotation').value=rotations[m];};
+window.saveAddPrediction=async()=>{
+  const machine=document.getElementById('predMachine').value;
+  const lastTime=document.getElementById('predLastTime').value;
+  const rotation=parseFloat(document.getElementById('predRotation').value)||3;
+  if(!machine||!lastTime)return;
+  await push(predictionsRef,{machine,predictedTs:calcNextTs(lastTime,rotation),rotation,arrivedTs:null});
+  window.closeAddPrediction();
+};
+document.getElementById('addPredModal').addEventListener('click',function(e){if(e.target===this)window.closeAddPrediction();});
+
+function calcNextTs(timeStr,rotationHours) {
+  const now=new Date(),[h,m]=timeStr.split(':').map(Number);
+  const base=new Date(now);base.setHours(h,m,0,0);
+  return base.getTime()+rotationHours*3600000;
+}
+async function createNextPrediction(machine,timeStr) {
+  const rotation=rotations[machine]||3;
+  const pending=Object.entries(predictions).find(([k,p])=>p.machine===machine&&!p.arrivedTs);
+  if(pending) await set(ref(db,`predictions/${pending[0]}/arrivedTs`),Date.now());
+  await push(predictionsRef,{machine,predictedTs:calcNextTs(timeStr,rotation),rotation,arrivedTs:null});
+}
+
+// ── FLOW ──
+function etaRecovery(accumulatedT, netRateT) {
+  // netRateT = capacity - arrivalRate (positive means recovering)
+  if(netRateT<=0) return null;
+  const hoursToRecover = accumulatedT / netRateT;
+  if(hoursToRecover>24) return null;
+  const mins = Math.round(hoursToRecover*60);
+  const at = new Date(Date.now()+hoursToRecover*3600000);
+  const t = String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');
+  return {mins, time:t, hours:hoursToRecover};
+}
+
+function whatIfCard(label, newCapacityRateT, arrivalRateT, accumulatedT, defaultRate) {
+  const netT = newCapacityRateT - arrivalRateT;
+  const isOk = netT >= 0;
+  const recovery = isOk && accumulatedT>0 ? etaRecovery(accumulatedT, netT) : null;
+  const cls = isOk ? (accumulatedT>0&&recovery?'warn':'ok') : 'critical';
+  let statusText, detail;
+  if(!isOk) {
+    statusText = `Still accumulating`;
+    detail = `+${Math.abs(netT).toFixed(1)} t/h over capacity`;
+  } else if(accumulatedT<=0) {
+    statusText = `✓ Within capacity`;
+    detail = `${netT.toFixed(1)} t/h spare`;
+  } else if(recovery) {
+    statusText = `✓ Will recover`;
+    detail = `Recover ${accumulatedT.toFixed(1)}t in ~${recovery.mins<60?recovery.mins+'m':Math.floor(recovery.mins/60)+'h'+recovery.mins%60+'m'} (~${recovery.time})`;
+  } else {
+    statusText = `✓ Within capacity`;
+    detail = `${netT.toFixed(1)} t/h spare`;
+  }
+  const verdictColor = cls==='ok'?'var(--green)':cls==='warn'?'var(--accent)':'var(--red)';
+  return `<div style="background:var(--surface2);border:1px solid ${verdictColor};border-radius:9px;padding:12px 14px;margin-bottom:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1.5px;color:var(--text);">${label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:${verdictColor};text-align:right;">${newCapacityRateT.toFixed(1)} t/h cap</div>
+    </div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;color:${verdictColor};margin-bottom:3px;">${statusText}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);">${detail}</div>
+  </div>`;
+}
+
+window.updateWhatIf=(arrivalRateT, currentCapRateT, accumulatedT, nActiveLines)=>{
+  const wiLines=parseFloat(document.getElementById('wiLines')?.value)||0;
+  const wiLineRate=parseFloat(document.getElementById('wiLineRate')?.value)||4;
+  const wiSpeedLines=parseFloat(document.getElementById('wiSpeedLines')?.value)||0;
+  const wiSpeedIncrease=parseFloat(document.getElementById('wiSpeedIncrease')?.value)||0;
+  const resultEl=document.getElementById('wiResult');
+  if(!resultEl)return;
+
+  const addedCapacity=(wiLines*wiLineRate)+(wiSpeedLines*wiSpeedIncrease);
+  const newCapRateT=currentCapRateT+addedCapacity;
+  const netRateT=newCapRateT-arrivalRateT; // positive = recovering
+  const isOk=netRateT>=0;
+
+  let statusLine, detail1, detail2='', color;
+
+  if(addedCapacity===0){
+    // No change
+    if(!isOk){
+      color='var(--red)';
+      statusLine='Still accumulating at current setup';
+      const hToEmpty=accumulatedT>0?'already '+accumulatedT.toFixed(1)+'t accumulated':'';
+      detail1=`Net: ${netRateT.toFixed(1)} t/h (${Math.abs(netRateT).toFixed(1)} t/h over capacity)`;
+      detail2=accumulatedT>0?`Already ${accumulatedT.toFixed(1)}t accumulated this period`:'';
+    } else {
+      color='var(--green)';
+      statusLine='Within capacity — no changes needed';
+      detail1=`Net: +${netRateT.toFixed(1)} t/h spare capacity`;
+      detail2=accumulatedT>0?`${accumulatedT.toFixed(1)}t already accumulated — need more capacity to recover`:'';
+    }
+  } else if(!isOk){
+    color='var(--red)';
+    statusLine='Still accumulating';
+    detail1=`New capacity: ${newCapRateT.toFixed(1)} t/h vs ${arrivalRateT.toFixed(1)} t/h arriving`;
+    detail2=`Still ${Math.abs(netRateT).toFixed(1)} t/h short — try adding more lines or speed`;
+  } else {
+    // Recovering
+    if(accumulatedT>0){
+      const hoursToRecover=accumulatedT/netRateT;
+      const mins=Math.round(hoursToRecover*60);
+      const at=new Date(Date.now()+hoursToRecover*3600000);
+      const t=String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');
+      const timeStr=mins<60?`${mins}m`:`${Math.floor(mins/60)}h ${mins%60}m`;
+      color='var(--accent)';
+      statusLine=`✓ Will recover accumulated stock`;
+      detail1=`New capacity: ${newCapRateT.toFixed(1)} t/h — recovering at ${netRateT.toFixed(1)} t/h`;
+      detail2=`Recover ${accumulatedT.toFixed(1)}t in ~${timeStr} → clear by ~${t}`;
+    } else {
+      color='var(--green)';
+      statusLine='✓ Within capacity — no accumulation';
+      detail1=`New capacity: ${newCapRateT.toFixed(1)} t/h — ${netRateT.toFixed(1)} t/h spare`;
+      detail2='No accumulated stock to recover';
+    }
+  }
+
+  resultEl.innerHTML=`
+    <div style="border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1.5px;color:${color};margin-bottom:6px;">${statusLine}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);margin-bottom:${detail2?4:0}px;">${detail1}</div>
+      ${detail2?`<div style="font-family:'DM Mono',monospace;font-size:0.82rem;color:${color};font-weight:500;margin-top:4px;">${detail2}</div>`:''}
+      ${addedCapacity>0?`<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:8px;">Added: +${addedCapacity.toFixed(1)} t/h (${wiLines>0?wiLines+' line'+(wiLines>1?'s':'')+' × '+wiLineRate+'t/h':''}${wiLines>0&&wiSpeedLines>0?' + ':''}${wiSpeedLines>0?wiSpeedLines+' line'+(wiSpeedLines>1?'s':'')+' +'+wiSpeedIncrease+'t/h each':''})</div>`:''}
+    </div>`;
+};
+
+window.calcFlow=()=>{
+  const variety=document.getElementById('flowVariety')?.value;
+  const periodH=parseFloat(document.getElementById('flowPeriod')?.value||4);
+  const resultEl=document.getElementById('flowResult'),linesEl=document.getElementById('flowLines');
+  if(!resultEl||!linesEl)return;
+  if(!variety){
+    resultEl.innerHTML='<div style="color:var(--muted);font-size:0.85rem;padding:10px 0;">Select a variety to calculate.</div>';
+    linesEl.innerHTML='';return;
+  }
+
+  const now=Date.now();
+  const activeLines=LINE_DEFS.filter(def=>{const ld=lineData[def.id];return ld&&ld.variety===variety&&(ld.stock>0||ld.rate>0);});
+  const totalRateT=activeLines.reduce((s,def)=>{const ld=lineData[def.id];return s+(ld?.rate??4);},0);
+  const defaultLineRate=activeLines.length>0?(activeLines.reduce((s,def)=>{const ld=lineData[def.id];return s+(ld?.rate??4);},0)/activeLines.length):4;
+
+  // Historical data
+  const cutoff=now-periodH*3600000;
+  const relevant=Object.values(entries).filter(e=>e.variety===variety&&e.ts>=cutoff);
+  const receivedKg=relevant.reduce((s,e)=>s+(parseInt(e.tons)||0),0);
+  const receivedT=receivedKg/1000;
+  const arrivalRateT=periodH>0?receivedT/periodH:0; // t/h actual
+  const capacityT=totalRateT*periodH;
+  const accumulatedT=Math.max(0, receivedT-capacityT); // total accumulated this period
+
+  // ── SECTION 1: NOW ──
+  let nowVerdict,nowCls;
+  const netRate=totalRateT-arrivalRateT;
+  if(totalRateT===0){nowVerdict='NO ACTIVE LINES';nowCls='critical';}
+  else if(receivedT===0){nowVerdict='NO DATA YET';nowCls='warn';}
+  else if(arrivalRateT>totalRateT+0.1){nowVerdict='⚠️ ACCUMULATING';nowCls='critical';}
+  else if(arrivalRateT>totalRateT){nowVerdict='⚡ TIGHT';nowCls='warn';}
+  else{nowVerdict='✓ UNDER CONTROL';nowCls='ok';}
+
+  const nowColor=nowCls==='ok'?'var(--green)':nowCls==='warn'?'var(--accent)':'var(--red)';
+  const barPct=totalRateT>0?Math.min(100,(arrivalRateT/Math.max(arrivalRateT,totalRateT))*100):100;
+
+  let html=`<div style="background:var(--surface2);border:1px solid ${nowColor};border-radius:10px;padding:14px;margin-bottom:14px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:${nowColor};margin-bottom:10px;">${nowVerdict}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="background:var(--bg);border-radius:7px;padding:9px 6px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:500;color:var(--text);">${arrivalRateT.toFixed(1)}</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">t/h arriving</div>
+      </div>
+      <div style="background:var(--bg);border-radius:7px;padding:9px 6px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:500;color:var(--text);">${totalRateT.toFixed(1)}</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">t/h capacity</div>
+      </div>
+      <div style="background:var(--bg);border-radius:7px;padding:9px 6px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:500;color:${netRate>=0?'var(--green)':'var(--red)'};">${netRate>=0?'+':''}${netRate.toFixed(1)}</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">t/h net</div>
+      </div>
+    </div>
+    <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:100%;width:${barPct}%;background:${nowColor};border-radius:4px;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">
+      <span>Last ${periodH}h: ${receivedT.toFixed(1)}t received</span>
+      ${accumulatedT>0?`<span style="color:var(--red);">+${accumulatedT.toFixed(1)}t accumulated</span>`:`<span style="color:var(--green);">${Math.abs(receivedT-capacityT).toFixed(1)}t spare</span>`}
+    </div>
+  </div>`;
+
+  // ── SECTION 2: WHAT IF interactive ──
+  let whatIfHtml='';
+  if(totalRateT>0&&receivedT>0){
+    whatIfHtml=`<div style="font-family:'Bebas Neue',sans-serif;font-size:0.82rem;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">🔮 What if?</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="field">
+          <label>New lines to open</label>
+          <input type="number" id="wiLines" value="0" min="0" max="10" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
+        </div>
+        <div class="field">
+          <label>At rate (t/h)</label>
+          <input type="number" id="wiLineRate" value="${defaultLineRate.toFixed(1)}" min="0" max="20" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="field">
+          <label>Lines to speed up</label>
+          <input type="number" id="wiSpeedLines" value="0" min="0" max="${activeLines.length}" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
+        </div>
+        <div class="field">
+          <label>Speed increase (t/h)</label>
+          <input type="number" id="wiSpeedIncrease" value="0.5" min="0" max="10" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
+        </div>
+      </div>
+      <div id="wiResult"></div>
+    </div>`;
+  }
+
+  resultEl.innerHTML=html+whatIfHtml;
+
+  // Render initial what-if result
+  if(totalRateT>0&&receivedT>0) updateWhatIf(arrivalRateT,totalRateT,accumulatedT,activeLines.length);
+
+  // Details
+  let linesHtml='';
+  if(activeLines.length){
+    linesHtml+=`<div class="flow-section-title">Lines open for ${variety}</div>`;
+    activeLines.forEach(def=>{
+      const ld=lineData[def.id];const rate=ld?.rate??4;
+      linesHtml+=`<div class="flow-line-row">
+        <div><div class="flow-line-label">${def.label} · ${def.hopper} ${def.side}</div>
+        <div class="flow-line-rate">${rate} t/h</div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--accent);">${rate} t/h</div>
+      </div>`;
+    });
+  } else {
+    linesHtml+=`<div style="color:var(--muted);font-size:0.82rem;padding:10px 0;">No lines set to ${esc(variety)}. Go to Lines tab and set the variety.</div>`;
+  }
+  linesEl.innerHTML=linesHtml;
+};
+
+// ── REPORT ──
+function renderReport() {
+  const list=Object.values(entries);
+  const grandTotal=list.reduce((s,e)=>s+(parseInt(e.tons)||0),0);
+  const lm={H2:{Left:3,Right:4},H3:{Left:5,Right:6},H4:{Left:7,Right:8},H5:{Left:9,Right:10},H6:{Left:11,Right:12}};
+  const byVariety={},byLine={};
+  list.forEach(e=>{
+    const tons=parseInt(e.tons)||0;
+    const lineNum=lm[e.hopper]?.[e.side]||'?';
+    const lineKey=`${e.hopper} · Line ${lineNum} (${e.side})`;
+    const areaKey=e.area?.trim()||'(no area)';
+    if(!byVariety[e.variety]) byVariety[e.variety]={total:0,areas:{}};
+    byVariety[e.variety].total+=tons;
+    byVariety[e.variety].areas[areaKey]=(byVariety[e.variety].areas[areaKey]||0)+tons;
+    byLine[lineKey]=(byLine[lineKey]||0)+tons;
+  });
+  let html=`<div class="report-summary"><div class="stat-card"><div class="stat-label">Grand Total</div><div class="stat-value">${grandTotal.toLocaleString('en-GB')} kg</div></div><div class="stat-card"><div class="stat-label">Arrivals</div><div class="stat-value">${list.length}</div></div></div>`;
+  if(!list.length){html+='<div class="empty-log"><div class="icon">📊</div>No data yet.</div>';document.getElementById('reportContent').innerHTML=html;return;}
+  html+=`<div class="report-group-title">By Variety & Area</div>`;
+  Object.entries(byVariety).sort((a,b)=>b[1].total-a[1].total).forEach(([variety,data])=>{
+    html+=`<div class="report-section"><div class="report-section-header"><span class="report-section-title">${esc(variety)}</span><span class="report-section-total">${data.total.toLocaleString('en-GB')} kg</span></div><div class="report-rows">`;
+    Object.entries(data.areas).sort((a,b)=>b[1]-a[1]).forEach(([area,t])=>{html+=`<div class="report-row"><span class="report-row-label">${esc(area)}</span><span class="report-row-val">${t.toLocaleString('en-GB')} kg</span></div>`;});
+    html+=`</div></div>`;
+  });
+  html+=`<div class="report-group-title">By Line</div><div class="report-section"><div class="report-rows">`;
+  Object.entries(byLine).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([line,tons])=>{html+=`<div class="report-row"><span class="report-row-label">${esc(line)}</span><span class="report-row-val">${tons.toLocaleString('en-GB')} kg</span></div>`;});
+  html+=`</div></div>`;
+  document.getElementById('reportContent').innerHTML=html;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
