@@ -850,11 +850,10 @@ function renderLines() {
     const ld=lineData[def.id]||{};
     const stock=calcCurrentStock(ld);
     const rate=ld.rate!==undefined?ld.rate:4;
-    const variety=ld.variety||'';
     const peak=ld.peakStock||stock||1;
     const pct=peak>0?Math.min(100,(stock/peak)*100):0;
-    const crushing=ld.crushing||null; // null, 'A', or 'B'
-    const hA=def.hoppers[0], hB=def.hoppers[1]; // e.g. 'H1','H2'
+    const crushing=ld.crushing||null;
+    const hA=def.hoppers[0], hB=def.hoppers[1];
     const hATons=ld.hATons||0, hBTons=ld.hBTons||0;
 
     // ETA for whole line
