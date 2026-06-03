@@ -802,6 +802,8 @@ function renderLines() {
       const stock=calcCurrentStock(ld);
       const rate=ld.rate!==undefined?ld.rate:4;
       const variety=ld.variety||'';
+      const variety2=ld.variety2||'';
+      const varietyLabel=variety?(variety+(variety2?' + '+variety2:'')):'';
       const peak=ld.peakStock||stock||1;
       const pct=peak>0?Math.min(100,(stock/peak)*100):0;
       let minsLeft=Infinity,etaTime='—',etaClass='empty';
@@ -828,7 +830,7 @@ function renderLines() {
       const crushingBadge=crushing?`<span style="font-size:0.6rem;background:rgba(76,175,118,0.15);color:var(--green);border-radius:4px;padding:1px 5px;margin-left:4px;">H${crushing}▼</span>`:'';
       html+=`<div class="line-compact" onclick="goToLine('${def.hopper}','${def.id}')">
         <div style="min-width:0;">
-          <div class="line-compact-title">${def.label} <span style="font-size:0.62rem;color:var(--muted);">${def.hopper} ${def.side}</span>${crushingBadge}${variety?`<span style="font-size:0.62rem;color:var(--accent);margin-left:4px;">${variety}</span>`:''}</div>
+          <div class="line-compact-title">${def.label} <span style="font-size:0.62rem;color:var(--muted);">${def.hopper} ${def.side}</span>${crushingBadge}${varietyLabel?`<span style="font-size:0.62rem;color:var(--accent);margin-left:4px;">${varietyLabel}</span>`:''}</div>
           <div class="line-compact-sub">${rate} t/h</div>
         </div>
         <div class="line-compact-right">
@@ -880,13 +882,17 @@ function renderLines() {
     }
 
     const barColor=stock/1000>5?'var(--green)':stock/1000>0?'var(--accent)':'var(--red)';
+    const variety=ld.variety||'';
+    const variety2=ld.variety2||'';
     const varOpts=VARIETIES_LIST.map(v=>`<option value="${v}" ${v===variety?'selected':''}>${v}</option>`).join('');
+    const varOpts2=VARIETIES_LIST.map(v=>`<option value="${v}" ${v===variety2?'selected':''}>${v}</option>`).join('');
+    const varietyBadge=variety?`<span class="line-variety-badge">${variety}${variety2?' + '+variety2:''}</span>`:'';
 
     html+=`<div class="line-card">
       <div class="line-card-header">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span class="line-card-title">${def.label} · ${def.hopper} ${def.side}</span>
-          ${variety?`<span class="line-variety-badge">${variety}</span>`:''}
+          ${varietyBadge}
         </div>
         <div style="text-align:right;">
           <div class="line-eta-big ${etaClass}">${etaBig}</div>
@@ -901,8 +907,11 @@ function renderLines() {
         <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
 
         <!-- SETTINGS -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:7px;align-items:flex-end;padding-top:10px;border-top:1px solid var(--border);">
-          <div class="field"><label>Variety</label><div class="select-wrap"><select id="variety_${def.id}" style="appearance:none;-webkit-appearance:none;padding-right:22px;font-size:0.8rem;"><option value="">—</option>${varOpts}</select><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:0.75rem;">▾</span></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="field"><label>Variety 1</label><div class="select-wrap"><select id="variety_${def.id}" style="appearance:none;-webkit-appearance:none;padding-right:22px;font-size:0.8rem;"><option value="">—</option>${varOpts}</select><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:0.75rem;">▾</span></div></div>
+          <div class="field"><label>Variety 2 (optional)</label><div class="select-wrap"><select id="variety2_${def.id}" style="appearance:none;-webkit-appearance:none;padding-right:22px;font-size:0.8rem;"><option value="">—</option>${varOpts2}</select><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:0.75rem;">▾</span></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:7px;align-items:flex-end;">
           <div class="field"><label>Stock (t)</label><input type="number" id="stock_${def.id}" placeholder="${(stock/1000).toFixed(2)}" step="0.1" min="0" style="font-size:0.85rem;padding:8px 9px;min-height:40px;"></div>
           <div class="field"><label>Rate (t/h)</label><input type="number" id="rate_${def.id}" placeholder="${rate}" step="0.5" min="0" style="font-size:0.85rem;padding:8px 9px;min-height:40px;"></div>
           <button class="btn btn-primary btn-sm" onclick="saveLine('${def.id}')" style="align-self:flex-end;">Set</button>
@@ -955,14 +964,17 @@ window.saveLine=async(lineId)=>{
   const stockEl=document.getElementById(`stock_${lineId}`);
   const rateEl=document.getElementById(`rate_${lineId}`);
   const varEl=document.getElementById(`variety_${lineId}`);
+  const var2El=document.getElementById(`variety2_${lineId}`);
   const stockVal=stockEl.value!==''?parseFloat(stockEl.value)*1000:null;
   const rateVal=rateEl.value!==''?parseFloat(rateEl.value):null;
   const varVal=varEl?.value||null;
+  const var2Val=var2El?.value||null;
   const existing=lineData[lineId]||{stock:0,rate:4,setAt:Date.now(),peakStock:0};
   const newStock=stockVal!==null?stockVal:calcCurrentStock(existing);
   const newRate=rateVal!==null?rateVal:(existing.rate??4);
   const newVariety=varVal!==null?varVal:(existing.variety||'');
-  await set(ref(db,`lineData/${lineId}`),{...existing,stock:newStock,rate:newRate,variety:newVariety,setAt:Date.now(),peakStock:Math.max(newStock,existing.peakStock||0)});
+  const newVariety2=var2Val!==null?var2Val:(existing.variety2||'');
+  await set(ref(db,`lineData/${lineId}`),{...existing,stock:newStock,rate:newRate,variety:newVariety,variety2:newVariety2,setAt:Date.now(),peakStock:Math.max(newStock,existing.peakStock||0)});
   stockEl.value=''; rateEl.value='';
 };
 
@@ -1238,7 +1250,11 @@ window.calcFlow=()=>{
   }
 
   const now=Date.now();
-  const activeLines=LINE_DEFS.filter(def=>{const ld=lineData[def.id];return ld&&ld.variety===variety&&(ld.stock>0||ld.rate>0);});
+  const activeLines=LINE_DEFS.filter(def=>{
+    const ld=lineData[def.id];
+    if(!ld||(ld.stock<=0&&ld.rate<=0)) return false;
+    return ld.variety===variety||ld.variety2===variety;
+  });
   const totalRateT=activeLines.reduce((s,def)=>{const ld=lineData[def.id];return s+(ld?.rate??4);},0);
   const defaultLineRate=activeLines.length>0?(activeLines.reduce((s,def)=>{const ld=lineData[def.id];return s+(ld?.rate??4);},0)/activeLines.length):4;
 
