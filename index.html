@@ -271,7 +271,7 @@ nav::-webkit-scrollbar { display: none; }
       <div class="field" id="fld-machine">
         <label>Machine</label>
         <div class="select-wrap">
-          <select id="fMachine">
+          <select id="fMachine" onchange="onMachineChange()">
             <option value="">Select…</option>
             <option>BB7</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option>
             <option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option>
@@ -476,7 +476,7 @@ const db = getDatabase(app);
 // ── CONSTANTS ──
 const MACHINES = ['BB7','BB14','TC2','TC3','TC6','TC7','TC10','TC11','TC12','TC15','OP1','OP2','OP3','OP4','PEL'];
 const VARIETIES = ['Picual','Coratina','ABQ','Koro','Frantoio','Manza','Hoji','Leccino','Pendo','Chemlali'];
-const ALL_AREAS = ["O'Donnell's","Parkers","Logans","McGraths","Hummels","Edgars","Keiths","Kines","Lewis","Barries","Beatons","Gills","Evans","Lanyons","Pearces","Dam","Flips","Wychitella","Cables","James","Andrews","Moloneys","Geary","Omearas","West","Mathews","Fitz","Jonathan","Pinks","Arthur","Weavers","Allison's"];
+const ALL_AREAS = ["O'Donnell's","Parkers","Logans","McGraths","Hummels","Edgars","Keiths","Kines","Lewis","Barries","Beatons","Gills","Evans","Lanyons","Pearces","Dam","Flips","Wychitella","Cables","James","Andrews","Moloneys","Geary","Omearas","West","Mathews","Fitz","Jonathan","Pinks","Arthur","Weavers","Allison's","Bains"];
 const LINE_DEFS = [
   {id:'L3', label:'Line 3', hopper:'H2', side:'Left',  hoppers:['H1','H2']},
   {id:'L4', label:'Line 4', hopper:'H2', side:'Right', hoppers:['H3','H4']},
@@ -606,7 +606,19 @@ window.selectArea = (name) => { document.getElementById('fArea').value=name; doc
 document.addEventListener('click', e => { if(!e.target.closest('.area-dropdown-wrap')) document.getElementById('areaDropdown').classList.remove('open'); });
 
 // ── LOG FORM ──
-window.selectHopper = (el, val) => {
+// Auto-select variety and area based on last log of this machine
+window.onMachineChange = () => {
+  const machine = document.getElementById('fMachine').value;
+  if(!machine) return;
+  const machineEntries = Object.values(entries)
+    .filter(e=>e.machine===machine)
+    .sort((a,b)=>b.ts-a.ts);
+  if(machineEntries.length>0){
+    const last=machineEntries[0];
+    if(last.variety) document.getElementById('fVariety').value=last.variety;
+    if(last.area) document.getElementById('fArea').value=last.area;
+  }
+};
   document.querySelectorAll('.hopper-pill').forEach(p=>p.classList.remove('selected','error'));
   el.classList.add('selected');
   selectedHopper = val;
@@ -669,7 +681,7 @@ window.submitEntry = async () => {
     const base={machine,variety,area,hopper:selectedHopper,time,ts:Date.now(),splitFrom:'Both'};
     if(tL){await push(entriesRef,{...base,side:'Left',tons:tL});await addTonsToLine(selectedHopper,'Left',tL);}
     if(tR){await push(entriesRef,{...base,side:'Right',tons:tR});await addTonsToLine(selectedHopper,'Right',tR);}
-    await createNextPrediction(machine,time);
+    await createNextPrediction(machine,time,variety,area);
     const lL=lm[selectedHopper]?.Left||'?', lR=lm[selectedHopper]?.Right||'?';
     const parts=[];
     if(tL) parts.push(`L${lL}: ${tL.toLocaleString('en-GB')} kg`);
@@ -684,7 +696,7 @@ window.submitEntry = async () => {
     const entry={machine,variety,area,hopper:selectedHopper,side:selectedSide,tons:parseInt(tons),time,ts:Date.now()};
     await push(entriesRef,entry);
     await addTonsToLine(selectedHopper,selectedSide,parseInt(tons));
-    await createNextPrediction(machine,time);
+    await createNextPrediction(machine,time,variety,area);
     const lineNum=lm[selectedHopper]?.[selectedSide]||'?';
     flashMsg(`✓ ${machine} — ${parseInt(tons).toLocaleString('en-GB')} kg → ${selectedHopper} Line ${lineNum} (${selectedSide})`, true);
     document.getElementById('fTons').value='';
@@ -774,7 +786,7 @@ document.getElementById('editModal').addEventListener('click',function(e){if(e.t
 // ── LINES ──
 function calcCurrentStock(ld) {
   if(!ld||!ld.stock) return 0;
-  if(!ld.rate||ld.rate<=0) return ld.stock;
+  if(ld.paused||!ld.rate||ld.rate<=0) return ld.stock; // paused = no processing
   const hrs=(Date.now()-ld.setAt)/3600000;
   return Math.max(0, ld.stock-(hrs*ld.rate*1000));
 }
@@ -803,6 +815,7 @@ function renderLines() {
       const rate=ld.rate!==undefined?ld.rate:4;
       const variety=ld.variety||'';
       const variety2=ld.variety2||'';
+      const paused=ld.paused||false;
       const varietyLabel=variety?(variety+(variety2?' + '+variety2:'')):'';
       const peak=ld.peakStock||stock||1;
       const pct=peak>0?Math.min(100,(stock/peak)*100):0;
@@ -830,7 +843,7 @@ function renderLines() {
       const crushingBadge=crushing?`<span style="font-size:0.6rem;background:rgba(76,175,118,0.15);color:var(--green);border-radius:4px;padding:1px 5px;margin-left:4px;">H${crushing}▼</span>`:'';
       html+=`<div class="line-compact" onclick="goToLine('${def.hopper}','${def.id}')">
         <div style="min-width:0;">
-          <div class="line-compact-title">${def.label} <span style="font-size:0.62rem;color:var(--muted);">${def.hopper} ${def.side}</span>${crushingBadge}${varietyLabel?`<span style="font-size:0.62rem;color:var(--accent);margin-left:4px;">${varietyLabel}</span>`:''}</div>
+          <div class="line-compact-title">${def.label} <span style="font-size:0.62rem;color:var(--muted);">${def.hopper} ${def.side}</span>${crushingBadge}${varietyLabel?`<span style="font-size:0.62rem;color:var(--accent);margin-left:4px;">${varietyLabel}</span>`:''}${paused?`<span style="font-size:0.6rem;color:var(--muted);margin-left:4px;">⏸</span>`:''}</div>
           <div class="line-compact-sub">${rate} t/h</div>
         </div>
         <div class="line-compact-right">
@@ -883,19 +896,24 @@ function renderLines() {
     const barColor=stock/1000>5?'var(--green)':stock/1000>0?'var(--accent)':'var(--red)';
     const variety=ld.variety||'';
     const variety2=ld.variety2||'';
+    const paused=ld.paused||false;
     const varOpts=VARIETIES_LIST.map(v=>`<option value="${v}" ${v===variety?'selected':''}>${v}</option>`).join('');
     const varOpts2=VARIETIES_LIST.map(v=>`<option value="${v}" ${v===variety2?'selected':''}>${v}</option>`).join('');
     const varietyBadge=variety?`<span class="line-variety-badge">${variety}${variety2?' + '+variety2:''}</span>`:'';
 
-    html+=`<div class="line-card">
+    html+=`<div class="line-card" style="${paused?'opacity:0.75;':''}" >
       <div class="line-card-header">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span class="line-card-title">${def.label} · ${def.hopper} ${def.side}</span>
           ${varietyBadge}
+          ${paused?`<span style="background:rgba(119,119,119,0.2);color:var(--muted);border-radius:4px;font-size:0.65rem;font-family:'DM Sans',sans-serif;font-weight:600;padding:2px 8px;">⏸ PAUSED</span>`:''}
         </div>
-        <div style="text-align:right;">
-          <div class="line-eta-big ${etaClass}">${etaBig}</div>
-          <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;">${etaText}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button onclick="togglePaused('${def.id}')" style="background:${paused?'var(--muted)':'transparent'};border:1px solid ${paused?'var(--muted)':'var(--border)'};border-radius:6px;color:${paused?'var(--bg)':'var(--muted)'};font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:600;padding:0 10px;cursor:pointer;min-height:32px;">${paused?'▶ Resume':'⏸ Pause'}</button>
+          <div style="text-align:right;">
+            <div class="line-eta-big ${paused?'empty':etaClass}">${paused?'Paused':etaBig}</div>
+            <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;">${paused?'not processing':etaText}</div>
+          </div>
         </div>
       </div>
       <div class="line-card-body">
@@ -959,6 +977,17 @@ async function saveHopperTons(lineId, key, valT) {
   });
 }
 
+window.togglePaused=async(lineId)=>{
+  const current=lineData[lineId]?.paused||false;
+  await set(ref(db,`lineData/${lineId}/paused`),!current);
+  // Re-save setAt so stock doesn't jump when unpausing
+  if(current===true){
+    // Unpausing — reset setAt to now with current stock
+    const ld=lineData[lineId]||{};
+    await set(ref(db,`lineData/${lineId}/setAt`),Date.now());
+  }
+};
+
 window.saveLine=async(lineId)=>{
   const stockEl=document.getElementById(`stock_${lineId}`);
   const rateEl=document.getElementById(`rate_${lineId}`);
@@ -966,8 +995,8 @@ window.saveLine=async(lineId)=>{
   const var2El=document.getElementById(`variety2_${lineId}`);
   const stockVal=stockEl.value!==''?parseFloat(stockEl.value)*1000:null;
   const rateVal=rateEl.value!==''?parseFloat(rateEl.value):null;
-  const varVal=varEl?.value||null;
-  const var2Val=var2El?.value||null;
+  const varVal=varEl?.value!==undefined?varEl.value:null;
+  const var2Val=var2El?.value!==undefined?var2El.value:null;
   const existing=lineData[lineId]||{stock:0,rate:4,setAt:Date.now(),peakStock:0};
   const newStock=stockVal!==null?stockVal:calcCurrentStock(existing);
   const newRate=rateVal!==null?rateVal:(existing.rate??4);
@@ -1063,9 +1092,12 @@ function schedCard(p,status,machineTotals,downMachines) {
   const mt=machineTotals[p.machine];
   const avg=mt&&mt.count>0?Math.round(mt.sum/mt.count/1000*10)/10:null;
 
-  // Find variety from most recent entries for this machine
+  // Find variety from prediction first, then fall back to most recent entry
+  const predVariety=p.variety||'';
+  const predArea=p.area||'';
   const machineEntries=Object.values(entries).filter(e=>e.machine===p.machine).sort((a,b)=>b.ts-a.ts);
-  const lastVariety=machineEntries.length?machineEntries[0].variety:'';
+  const lastVariety=predVariety||(machineEntries.length?machineEntries[0].variety:'');
+  const lastArea=predArea||(machineEntries.length?machineEntries[0].area:'');
 
   const downStyle=isDown?'opacity:0.45;':'';
   return `<div class="sched-entry ${status}" style="${downStyle}">
@@ -1077,6 +1109,7 @@ function schedCard(p,status,machineTotals,downMachines) {
       <div class="sched-machine">${esc(p.machine)} ${isDown?`<span style="background:var(--muted);color:var(--bg);border-radius:4px;font-size:0.62rem;padding:1px 6px;font-family:'DM Sans',sans-serif;">DOWN</span>`:lateBadge}</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
         ${lastVariety?`<span style="background:rgba(232,197,71,0.12);color:var(--accent);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">${esc(lastVariety)}</span>`:''}
+        ${lastArea?`<span style="background:var(--surface2);color:var(--muted);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">📍 ${esc(lastArea)}</span>`:''}
         ${p.rotation?`<span style="background:var(--surface2);color:var(--muted);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">⏱ ${p.rotation}h</span>`:''}
         ${avg!==null?`<span style="background:rgba(76,175,118,0.12);color:var(--green);border-radius:4px;font-size:0.68rem;font-family:'DM Mono',monospace;padding:2px 7px;">~${avg}t avg</span>`:''}
       </div>
@@ -1126,11 +1159,11 @@ function calcNextTs(timeStr,rotationHours) {
   const base=new Date(now);base.setHours(h,m,0,0);
   return base.getTime()+rotationHours*3600000;
 }
-async function createNextPrediction(machine,timeStr) {
+async function createNextPrediction(machine,timeStr,variety="",area="") {
   const rotation=rotations[machine]||3;
   const pending=Object.entries(predictions).find(([k,p])=>p.machine===machine&&!p.arrivedTs);
   if(pending) await set(ref(db,`predictions/${pending[0]}/arrivedTs`),Date.now());
-  await push(predictionsRef,{machine,predictedTs:calcNextTs(timeStr,rotation),rotation,arrivedTs:null});
+  await push(predictionsRef,{machine,predictedTs:calcNextTs(timeStr,rotation),rotation,arrivedTs:null,variety,area});
 }
 
 // ── FLOW ──
@@ -1180,61 +1213,58 @@ window.updateWhatIf=(arrivalRateT, currentCapRateT, accumulatedT, nActiveLines)=
   const wiLineRate=parseFloat(document.getElementById('wiLineRate')?.value)||4;
   const wiSpeedLines=parseFloat(document.getElementById('wiSpeedLines')?.value)||0;
   const wiSpeedIncrease=parseFloat(document.getElementById('wiSpeedIncrease')?.value)||0;
+  const wiCloseLines=parseFloat(document.getElementById('wiCloseLines')?.value)||0;
+  const wiSlowLines=parseFloat(document.getElementById('wiSlowLines')?.value)||0;
+  const wiSlowDecrease=parseFloat(document.getElementById('wiSlowDecrease')?.value)||0;
   const resultEl=document.getElementById('wiResult');
   if(!resultEl)return;
 
   const addedCapacity=(wiLines*wiLineRate)+(wiSpeedLines*wiSpeedIncrease);
-  const newCapRateT=currentCapRateT+addedCapacity;
-  const netRateT=newCapRateT-arrivalRateT; // positive = recovering
+  const removedCapacity=(wiCloseLines*(currentCapRateT/Math.max(nActiveLines,1)))+(wiSlowLines*wiSlowDecrease);
+  const newCapRateT=Math.max(0, currentCapRateT+addedCapacity-removedCapacity);
+  const netRateT=newCapRateT-arrivalRateT;
   const isOk=netRateT>=0;
+  const noChange=addedCapacity===0&&removedCapacity===0;
 
   let statusLine, detail1, detail2='', color;
 
-  if(addedCapacity===0){
-    // No change
-    if(!isOk){
-      color='var(--red)';
-      statusLine='Still accumulating at current setup';
-      const hToEmpty=accumulatedT>0?'already '+accumulatedT.toFixed(1)+'t accumulated':'';
-      detail1=`Net: ${netRateT.toFixed(1)} t/h (${Math.abs(netRateT).toFixed(1)} t/h over capacity)`;
-      detail2=accumulatedT>0?`Already ${accumulatedT.toFixed(1)}t accumulated this period`:'';
-    } else {
-      color='var(--green)';
-      statusLine='Within capacity — no changes needed';
-      detail1=`Net: +${netRateT.toFixed(1)} t/h spare capacity`;
-      detail2=accumulatedT>0?`${accumulatedT.toFixed(1)}t already accumulated — need more capacity to recover`:'';
-    }
+  if(noChange){
+    if(!isOk){color='var(--red)';statusLine='Still accumulating at current setup';detail1=`Net: ${netRateT.toFixed(1)} t/h (${Math.abs(netRateT).toFixed(1)} t/h over capacity)`;detail2=accumulatedT>0?`${accumulatedT.toFixed(1)}t already accumulated`:'';}
+    else{color='var(--green)';statusLine='Within capacity — no changes needed';detail1=`Net: +${netRateT.toFixed(1)} t/h spare`;detail2=accumulatedT>0?`${accumulatedT.toFixed(1)}t accumulated — need more capacity to recover`:'';}
   } else if(!isOk){
-    color='var(--red)';
-    statusLine='Still accumulating';
+    color='var(--red)';statusLine='Still accumulating';
     detail1=`New capacity: ${newCapRateT.toFixed(1)} t/h vs ${arrivalRateT.toFixed(1)} t/h arriving`;
-    detail2=`Still ${Math.abs(netRateT).toFixed(1)} t/h short — try adding more lines or speed`;
+    detail2=`Still ${Math.abs(netRateT).toFixed(1)} t/h short`;
   } else {
-    // Recovering
     if(accumulatedT>0){
       const hoursToRecover=accumulatedT/netRateT;
       const mins=Math.round(hoursToRecover*60);
       const at=new Date(Date.now()+hoursToRecover*3600000);
       const t=String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');
       const timeStr=mins<60?`${mins}m`:`${Math.floor(mins/60)}h ${mins%60}m`;
-      color='var(--accent)';
-      statusLine=`✓ Will recover accumulated stock`;
+      color='var(--accent)';statusLine='✓ Will recover accumulated stock';
       detail1=`New capacity: ${newCapRateT.toFixed(1)} t/h — recovering at ${netRateT.toFixed(1)} t/h`;
       detail2=`Recover ${accumulatedT.toFixed(1)}t in ~${timeStr} → clear by ~${t}`;
     } else {
-      color='var(--green)';
-      statusLine='✓ Within capacity — no accumulation';
+      color=removedCapacity>0?'var(--accent)':'var(--green)';
+      statusLine='✓ Within capacity';
       detail1=`New capacity: ${newCapRateT.toFixed(1)} t/h — ${netRateT.toFixed(1)} t/h spare`;
-      detail2='No accumulated stock to recover';
+      detail2=removedCapacity>0?'Reduced capacity — monitor arrival rate':'';
     }
   }
+
+  const changes=[];
+  if(wiLines>0) changes.push(`+${wiLines} line${wiLines>1?'s':''} @ ${wiLineRate}t/h`);
+  if(wiSpeedLines>0) changes.push(`${wiSpeedLines} line${wiSpeedLines>1?'s':''} +${wiSpeedIncrease}t/h`);
+  if(wiCloseLines>0) changes.push(`-${wiCloseLines} line${wiCloseLines>1?'s':''} closed`);
+  if(wiSlowLines>0) changes.push(`${wiSlowLines} line${wiSlowLines>1?'s':''} -${wiSlowDecrease}t/h`);
 
   resultEl.innerHTML=`
     <div style="border-top:1px solid var(--border);padding-top:12px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1.5px;color:${color};margin-bottom:6px;">${statusLine}</div>
       <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);margin-bottom:${detail2?4:0}px;">${detail1}</div>
       ${detail2?`<div style="font-family:'DM Mono',monospace;font-size:0.82rem;color:${color};font-weight:500;margin-top:4px;">${detail2}</div>`:''}
-      ${addedCapacity>0?`<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:8px;">Added: +${addedCapacity.toFixed(1)} t/h (${wiLines>0?wiLines+' line'+(wiLines>1?'s':'')+' × '+wiLineRate+'t/h':''}${wiLines>0&&wiSpeedLines>0?' + ':''}${wiSpeedLines>0?wiSpeedLines+' line'+(wiSpeedLines>1?'s':'')+' +'+wiSpeedIncrease+'t/h each':''})</div>`:''}
+      ${changes.length?`<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:8px;">Changes: ${changes.join(' · ')}</div>`:''}
     </div>`;
 };
 
@@ -1251,20 +1281,29 @@ window.calcFlow=()=>{
   const now=Date.now();
   const activeLines=LINE_DEFS.filter(def=>{
     const ld=lineData[def.id];
-    if(!ld||(ld.stock<=0&&ld.rate<=0)) return false;
+    if(!ld||ld.paused) return false;
+    if(ld.stock<=0&&!ld.rate) return false;
     return ld.variety===variety||ld.variety2===variety;
   });
   const totalRateT=activeLines.reduce((s,def)=>{const ld=lineData[def.id];return s+(ld?.rate??4);},0);
-  const defaultLineRate=activeLines.length>0?(activeLines.reduce((s,def)=>{const ld=lineData[def.id];return s+(ld?.rate??4);},0)/activeLines.length):4;
+  const defaultLineRate=activeLines.length>0?totalRateT/activeLines.length:4;
 
-  // Historical data
+  // Collect all varieties being processed on these lines (blend)
+  const blendVarieties=new Set([variety]);
+  activeLines.forEach(def=>{
+    const ld=lineData[def.id];
+    if(ld?.variety) blendVarieties.add(ld.variety);
+    if(ld?.variety2) blendVarieties.add(ld.variety2);
+  });
+
+  // Historical data — sum all blended varieties
   const cutoff=now-periodH*3600000;
-  const relevant=Object.values(entries).filter(e=>e.variety===variety&&e.ts>=cutoff);
+  const relevant=Object.values(entries).filter(e=>blendVarieties.has(e.variety)&&e.ts>=cutoff);
   const receivedKg=relevant.reduce((s,e)=>s+(parseInt(e.tons)||0),0);
   const receivedT=receivedKg/1000;
-  const arrivalRateT=periodH>0?receivedT/periodH:0; // t/h actual
+  const arrivalRateT=periodH>0?receivedT/periodH:0;
   const capacityT=totalRateT*periodH;
-  const accumulatedT=Math.max(0, receivedT-capacityT); // total accumulated this period
+  const accumulatedT=Math.max(0, receivedT-capacityT);
 
   // ── SECTION 1: NOW ──
   let nowVerdict,nowCls;
@@ -1308,25 +1347,22 @@ window.calcFlow=()=>{
   if(totalRateT>0&&receivedT>0){
     whatIfHtml=`<div style="font-family:'Bebas Neue',sans-serif;font-size:0.82rem;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">🔮 What if?</div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div class="field">
-          <label>New lines to open</label>
-          <input type="number" id="wiLines" value="0" min="0" max="10" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
-        </div>
-        <div class="field">
-          <label>At rate (t/h)</label>
-          <input type="number" id="wiLineRate" value="${defaultLineRate.toFixed(1)}" min="0" max="20" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
-        </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:0.78rem;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">ADD CAPACITY</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="field"><label>Open lines</label><input type="number" id="wiLines" value="0" min="0" max="10" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
+        <div class="field"><label>At rate (t/h)</label><input type="number" id="wiLineRate" value="${defaultLineRate.toFixed(1)}" min="0" max="20" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-        <div class="field">
-          <label>Lines to speed up</label>
-          <input type="number" id="wiSpeedLines" value="0" min="0" max="${activeLines.length}" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
-        </div>
-        <div class="field">
-          <label>Speed increase (t/h)</label>
-          <input type="number" id="wiSpeedIncrease" value="0.5" min="0" max="10" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})">
-        </div>
+        <div class="field"><label>Speed up lines</label><input type="number" id="wiSpeedLines" value="0" min="0" max="${activeLines.length}" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
+        <div class="field"><label>By (t/h each)</label><input type="number" id="wiSpeedIncrease" value="0.5" min="0" max="10" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:0.78rem;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">REDUCE CAPACITY</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="field"><label>Close lines</label><input type="number" id="wiCloseLines" value="0" min="0" max="${activeLines.length}" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
+        <div class="field"><label>Slow down lines</label><input type="number" id="wiSlowLines" value="0" min="0" max="${activeLines.length}" step="1" inputmode="numeric" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px;">
+        <div class="field"><label>Slow by (t/h each)</label><input type="number" id="wiSlowDecrease" value="0.5" min="0" max="10" step="0.5" inputmode="decimal" oninput="updateWhatIf(${arrivalRateT},${totalRateT},${accumulatedT},${activeLines.length})"></div>
       </div>
       <div id="wiResult"></div>
     </div>`;
