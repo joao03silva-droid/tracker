@@ -402,6 +402,27 @@ nav::-webkit-scrollbar { display: none; }
     <div class="filter-chip" onclick="setFilter('H5',this)">H5</div>
     <div class="filter-chip" onclick="setFilter('H6',this)">H6</div>
   </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+    <div class="field">
+      <label>Filter by Machine</label>
+      <div class="select-wrap">
+        <select id="filterMachine" onchange="renderEntries()">
+          <option value="">All machines</option>
+          <option>BB7</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Filter by Variety</label>
+      <div class="select-wrap">
+        <select id="filterVariety" onchange="renderEntries()">
+          <option value="">All varieties</option>
+          <option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option><option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="entriesSummary" style="margin-bottom:10px;"></div>
   <div class="log-entries" id="logEntries"></div>
 </div>
 
@@ -728,10 +749,34 @@ function flashMsg(msg, success) {
 window.setFilter=(val,el)=>{activeFilter=val;document.querySelectorAll('#filterRow .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderEntries();};
 function renderEntries() {
   const lm={H2:{Left:3,Right:4},H3:{Left:5,Right:6},H4:{Left:7,Right:8},H5:{Left:9,Right:10},H6:{Left:11,Right:12}};
+  const filterMachine=document.getElementById('filterMachine')?.value||'';
+  const filterVariety=document.getElementById('filterVariety')?.value||'';
+
   let list=Object.entries(entries).map(([k,v])=>({...v,_key:k})).sort((a,b)=>b.ts-a.ts);
   if(activeFilter!=='ALL') list=list.filter(e=>e.hopper===activeFilter);
+  if(filterMachine) list=list.filter(e=>e.machine===filterMachine);
+  if(filterVariety) list=list.filter(e=>e.variety===filterVariety);
+
+  // Summary bar
+  const summaryEl=document.getElementById('entriesSummary');
+  if(summaryEl&&list.length>0){
+    const totalKg=list.reduce((s,e)=>s+(parseInt(e.tons)||0),0);
+    const isFiltered=activeFilter!=='ALL'||filterMachine||filterVariety;
+    summaryEl.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
+        <span style="color:var(--muted);">${isFiltered?'Filtered: ':'Total: '}</span><span style="color:var(--accent);font-weight:500;">${totalKg.toLocaleString('en-GB')} kg</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
+        <span style="color:var(--muted);">Loads: </span><span style="color:var(--text);">${list.length}</span>
+      </div>
+      ${totalKg>0?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
+        <span style="color:var(--muted);">Avg: </span><span style="color:var(--text);">${(totalKg/list.length/1000).toFixed(2)} t/load</span>
+      </div>`:''}
+    </div>`;
+  } else if(summaryEl) summaryEl.innerHTML='';
+
   const container=document.getElementById('logEntries');
-  if(!list.length){container.innerHTML='<div class="empty-log"><div class="icon">📋</div>No entries yet.</div>';return;}
+  if(!list.length){container.innerHTML='<div class="empty-log"><div class="icon">📋</div>No entries found.</div>';return;}
   container.innerHTML=list.map(e=>{
     const lineNum=lm[e.hopper]?.[e.side]||'?';
     const splitBadge=e.splitFrom==='Both'?`<span style="background:rgba(90,158,224,0.15);color:var(--blue);border-radius:4px;padding:1px 5px;font-size:0.65rem;">split</span>`:'';
