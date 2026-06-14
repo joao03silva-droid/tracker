@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Harvest Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0c0c0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Harvest">
+<meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -273,9 +281,9 @@ nav::-webkit-scrollbar { display: none; }
         <div class="select-wrap">
           <select id="fMachine" onchange="onMachineChange()">
             <option value="">Select…</option>
-            <option>BB7</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option>
+            <option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option>
             <option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option>
-            <option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option>
+            <option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option>
           </select>
         </div>
       </div>
@@ -326,6 +334,10 @@ nav::-webkit-scrollbar { display: none; }
       <div class="field" id="fld-tons"><label>Weight (kg)</label><input type="number" id="fTons" placeholder="0" min="0" inputmode="numeric"></div>
     </div>
     <div id="weightBoth" style="display:none;margin-bottom:10px;">
+      <div class="field" style="margin-bottom:8px;">
+        <label>Total Load (kg)</label>
+        <input type="number" id="fTonsTotal" placeholder="0" min="0" inputmode="numeric" oninput="splitBothTotal()">
+      </div>
       <div class="form-grid">
         <div class="field"><label id="labelLeft">◀ Left (kg)</label><input type="number" id="fTonsLeft" placeholder="0" min="0" inputmode="numeric" oninput="updateBothTotal()"></div>
         <div class="field"><label id="labelRight">Right ▶ (kg)</label><input type="number" id="fTonsRight" placeholder="0" min="0" inputmode="numeric" oninput="updateBothTotal()"></div>
@@ -408,7 +420,7 @@ nav::-webkit-scrollbar { display: none; }
       <div class="select-wrap">
         <select id="filterMachine" onchange="renderEntries()">
           <option value="">All machines</option>
-          <option>BB7</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option>
+          <option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option>
         </select>
       </div>
     </div>
@@ -433,7 +445,7 @@ nav::-webkit-scrollbar { display: none; }
 <div class="modal-overlay" id="addPredModal">
   <div class="modal">
     <h3>Add Prediction</h3>
-    <div class="field" style="margin-bottom:12px;"><label>Machine</label><div class="select-wrap"><select id="predMachine" onchange="prefillRotation()"><option value="">Select…</option><option>BB7</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option></select></div></div>
+    <div class="field" style="margin-bottom:12px;"><label>Machine</label><div class="select-wrap"><select id="predMachine" onchange="prefillRotation()"><option value="">Select…</option><option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option></select></div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
       <div class="field"><label>Last arrival time</label><input type="time" id="predLastTime"></div>
       <div class="field"><label>Rotation (hours)</label><input type="number" id="predRotation" step="0.5" min="0.5" max="8" placeholder="3"></div>
@@ -454,7 +466,7 @@ nav::-webkit-scrollbar { display: none; }
   <div class="modal">
     <h3>Edit Entry</h3>
     <div class="form-grid" style="margin-bottom:10px;">
-      <div class="field"><label>Machine</label><div class="select-wrap"><select id="eMachine"><option>BB7</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option><option>PEL</option></select></div></div>
+      <div class="field"><label>Machine</label><div class="select-wrap"><select id="eMachine"><option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option></select></div></div>
       <div class="field"><label>Variety</label><div class="select-wrap"><select id="eVariety"><option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option><option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option></select></div></div>
     </div>
     <div class="field" style="margin-bottom:10px;"><label>Area</label><input type="text" id="eArea"></div>
@@ -495,7 +507,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // ── CONSTANTS ──
-const MACHINES = ['BB7','BB14','TC2','TC3','TC6','TC7','TC10','TC11','TC12','TC15','OP1','OP2','OP3','OP4','PEL'];
+const MACHINES = ['BB4','BB7','BB11','BB14','TC2','TC3','TC6','TC7','TC10','TC11','TC12','TC15','OP1','OP2','OP3','OP4'];
 const VARIETIES = ['Picual','Coratina','ABQ','Koro','Frantoio','Manza','Hoji','Leccino','Pendo','Chemlali'];
 const ALL_AREAS = ["O'Donnell's","Parkers","Logans","McGraths","Hummels","Edgars","Keiths","Kines","Lewis","Barries","Beatons","Gills","Evans","Lanyons","Pearces","Dam","Flips","Wychitella","Cables","James","Andrews","Moloneys","Geary","Omearas","West","Mathews","Fitz","Jonathan","Pinks","Arthur","Weavers","Allison's","Bains"];
 const LINE_DEFS = [
@@ -563,7 +575,7 @@ function unlockApp(role) {
   userRole = role;
   document.getElementById('pinScreen').style.display = 'none';
   const navBtns = document.querySelectorAll('.nav-btn');
-  if (role==='operator') { [1,2,3,5].forEach(i => navBtns[i].style.display='none'); }
+  if (role==='operator') { [1,2,5].forEach(i => navBtns[i].style.display='none'); }
   const badge = document.getElementById('roleBadge');
   badge.className = `pin-role-badge ${role}`;
   badge.textContent = role==='manager' ? '★ Manager' : 'Operator';
@@ -585,6 +597,7 @@ function tick() {
 setInterval(tick,1000); tick();
 setInterval(()=>{ if(document.getElementById('page-lines').classList.contains('active')) renderLines(); },10000);
 setInterval(()=>{ if(document.getElementById('page-schedule').classList.contains('active')) renderSchedule(); },30000);
+setInterval(()=>{ if(document.getElementById('page-log').classList.contains('active')) window.setNow(); },60000);
 
 // ── NAVIGATION ──
 window.showPage = (id) => {
@@ -598,6 +611,7 @@ window.showPage = (id) => {
   if(id==='lines') renderLines();
   if(id==='flow') calcFlow();
   if(id==='schedule') renderSchedule();
+  if(id==='log') window.setNow();
 };
 
 // ── AREA DROPDOWN ──
@@ -667,6 +681,14 @@ window.updateBothTotal = () => {
   const r=parseInt(document.getElementById('fTonsRight').value)||0;
   document.getElementById('bothTotal').textContent=`Total: ${(l+r).toLocaleString('en-GB')} kg`;
 };
+window.splitBothTotal = () => {
+  const total=parseInt(document.getElementById('fTonsTotal').value)||0;
+  const left=Math.round(total/2);
+  const right=total-left;
+  document.getElementById('fTonsLeft').value=left||'';
+  document.getElementById('fTonsRight').value=right||'';
+  updateBothTotal();
+};
 window.setNow = () => {
   const n=new Date();
   document.getElementById('fTime').value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
@@ -711,6 +733,7 @@ window.submitEntry = async () => {
     flashMsg(`✓ ${machine} — Both → ${selectedHopper} · ${parts.join(' / ')}`, true);
     document.getElementById('fTonsLeft').value='';
     document.getElementById('fTonsRight').value='';
+    document.getElementById('fTonsTotal').value='';
     updateBothTotal();
   } else {
     const tons=document.getElementById('fTons').value;
@@ -754,8 +777,8 @@ function renderEntries() {
 
   let list=Object.entries(entries).map(([k,v])=>({...v,_key:k})).sort((a,b)=>b.ts-a.ts);
   if(activeFilter!=='ALL') list=list.filter(e=>e.hopper===activeFilter);
-  if(filterMachine) list=list.filter(e=>e.machine===filterMachine);
-  if(filterVariety) list=list.filter(e=>e.variety===filterVariety);
+  if(filterMachine) list=list.filter(e=>(e.machine||'').trim().toLowerCase()===filterMachine.trim().toLowerCase());
+  if(filterVariety) list=list.filter(e=>(e.variety||'').trim().toLowerCase()===filterVariety.trim().toLowerCase());
 
   // Summary bar
   const summaryEl=document.getElementById('entriesSummary');
@@ -1126,7 +1149,7 @@ function renderSchedule() {
 
 function getDownMachines() {
   const down=new Set();
-  Object.values(predictions).forEach(p=>{if(p.isDown) down.add(p.machine);});
+  Object.values(predictions).forEach(p=>{if(p.isDown&&!p.arrivedTs) down.add(p.machine);});
   return down;
 }
 
@@ -1169,8 +1192,8 @@ function schedCard(p,status,machineTotals,downMachines) {
 }
 
 window.toggleDown=async(key,machine)=>{
-  // Toggle down for ALL pending predictions of this machine
-  const isCurrentlyDown=predictions[key]?.isDown||false;
+  // Determine current state the same way it's displayed (any pending prediction marked down)
+  const isCurrentlyDown=Object.values(predictions).some(p=>p.machine===machine&&!p.arrivedTs&&p.isDown);
   const newVal=!isCurrentlyDown;
   const updates=Object.entries(predictions)
     .filter(([k,p])=>p.machine===machine&&!p.arrivedTs)
@@ -1468,6 +1491,13 @@ function renderReport() {
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── PWA: Register service worker for offline app shell ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
