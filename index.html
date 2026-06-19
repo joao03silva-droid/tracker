@@ -266,6 +266,7 @@ nav::-webkit-scrollbar { display: none; }
   <button class="nav-btn" onclick="showPage('lines')">⚙️ Lines</button>
   <button class="nav-btn" onclick="showPage('flow')">🧮 Flow</button>
   <button class="nav-btn" onclick="showPage('schedule')">📅 Schedule</button>
+  <button class="nav-btn" onclick="showPage('rotations')">🔄 Rounds</button>
   <button class="nav-btn" onclick="showPage('entries')">📋 Entries</button>
   <button class="nav-btn" onclick="showPage('report')">📊 Report</button>
 </nav>
@@ -281,7 +282,7 @@ nav::-webkit-scrollbar { display: none; }
         <div class="select-wrap">
           <select id="fMachine" onchange="onMachineChange()">
             <option value="">Select…</option>
-            <option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option>
+            <option>BB10</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option>
             <option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option>
             <option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option>
           </select>
@@ -403,6 +404,17 @@ nav::-webkit-scrollbar { display: none; }
   <div id="scheduleList"></div>
 </div>
 
+<!-- ══ ROTATIONS ══ -->
+<div class="page" id="page-rotations">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;">Rounds</div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:1px;">Which machines have come in each round</div>
+    </div>
+  </div>
+  <div id="rotationsContent"></div>
+</div>
+
 <!-- ══ ENTRIES ══ -->
 <div class="page" id="page-entries">
   <div class="log-header"><h2>All Entries</h2><button class="btn btn-danger btn-sm" onclick="confirmClearAll()">Clear All</button></div>
@@ -414,22 +426,32 @@ nav::-webkit-scrollbar { display: none; }
     <div class="filter-chip" onclick="setFilter('H5',this)">H5</div>
     <div class="filter-chip" onclick="setFilter('H6',this)">H6</div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
     <div class="field">
-      <label>Filter by Machine</label>
+      <label>Machine</label>
       <div class="select-wrap">
         <select id="filterMachine" onchange="renderEntries()">
-          <option value="">All machines</option>
-          <option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option>
+          <option value="">All</option>
+          <option>BB10</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option>
         </select>
       </div>
     </div>
     <div class="field">
-      <label>Filter by Variety</label>
+      <label>Variety</label>
       <div class="select-wrap">
         <select id="filterVariety" onchange="renderEntries()">
-          <option value="">All varieties</option>
+          <option value="">All</option>
           <option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option><option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div style="margin-bottom:12px;">
+    <div class="field">
+      <label>Area</label>
+      <div class="select-wrap">
+        <select id="filterArea" onchange="renderEntries()">
+          <option value="">All areas</option>
         </select>
       </div>
     </div>
@@ -445,7 +467,7 @@ nav::-webkit-scrollbar { display: none; }
 <div class="modal-overlay" id="addPredModal">
   <div class="modal">
     <h3>Add Prediction</h3>
-    <div class="field" style="margin-bottom:12px;"><label>Machine</label><div class="select-wrap"><select id="predMachine" onchange="prefillRotation()"><option value="">Select…</option><option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option></select></div></div>
+    <div class="field" style="margin-bottom:12px;"><label>Machine</label><div class="select-wrap"><select id="predMachine" onchange="prefillRotation()"><option value="">Select…</option><option>BB10</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option></select></div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
       <div class="field"><label>Last arrival time</label><input type="time" id="predLastTime"></div>
       <div class="field"><label>Rotation (hours)</label><input type="number" id="predRotation" step="0.5" min="0.5" max="8" placeholder="3"></div>
@@ -466,7 +488,7 @@ nav::-webkit-scrollbar { display: none; }
   <div class="modal">
     <h3>Edit Entry</h3>
     <div class="form-grid" style="margin-bottom:10px;">
-      <div class="field"><label>Machine</label><div class="select-wrap"><select id="eMachine"><option>BB4</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option></select></div></div>
+      <div class="field"><label>Machine</label><div class="select-wrap"><select id="eMachine"><option>BB10</option><option>BB7</option><option>BB11</option><option>BB14</option><option>TC2</option><option>TC3</option><option>TC6</option><option>TC7</option><option>TC10</option><option>TC11</option><option>TC12</option><option>TC15</option><option>OP1</option><option>OP2</option><option>OP3</option><option>OP4</option></select></div></div>
       <div class="field"><label>Variety</label><div class="select-wrap"><select id="eVariety"><option>Picual</option><option>Coratina</option><option>ABQ</option><option>Koro</option><option>Frantoio</option><option>Manza</option><option>Hoji</option><option>Leccino</option><option>Pendo</option><option>Chemlali</option></select></div></div>
     </div>
     <div class="field" style="margin-bottom:10px;"><label>Area</label><input type="text" id="eArea"></div>
@@ -507,7 +529,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // ── CONSTANTS ──
-const MACHINES = ['BB4','BB7','BB11','BB14','TC2','TC3','TC6','TC7','TC10','TC11','TC12','TC15','OP1','OP2','OP3','OP4'];
+const MACHINES = ['BB10','BB7','BB11','BB14','TC2','TC3','TC6','TC7','TC10','TC11','TC12','TC15','OP1','OP2','OP3','OP4'];
 const VARIETIES = ['Picual','Coratina','ABQ','Koro','Frantoio','Manza','Hoji','Leccino','Pendo','Chemlali'];
 const ALL_AREAS = ["O'Donnell's","Parkers","Logans","McGraths","Hummels","Edgars","Keiths","Kines","Lewis","Barries","Beatons","Gills","Evans","Lanyons","Pearces","Dam","Flips","Wychitella","Cables","James","Andrews","Moloneys","Geary","Omearas","West","Mathews","Fitz","Jonathan","Pinks","Arthur","Weavers","Allison's","Bains"];
 const LINE_DEFS = [
@@ -575,7 +597,7 @@ function unlockApp(role) {
   userRole = role;
   document.getElementById('pinScreen').style.display = 'none';
   const navBtns = document.querySelectorAll('.nav-btn');
-  if (role==='operator') { [1,2,5].forEach(i => navBtns[i].style.display='none'); }
+  if (role==='operator') { [1,2,6].forEach(i => navBtns[i].style.display='none'); }
   const badge = document.getElementById('roleBadge');
   badge.className = `pin-role-badge ${role}`;
   badge.textContent = role==='manager' ? '★ Manager' : 'Operator';
@@ -604,13 +626,14 @@ window.showPage = (id) => {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const idx={log:0,lines:1,flow:2,schedule:3,entries:4,report:5}[id];
+  const idx={log:0,lines:1,flow:2,schedule:3,rotations:4,entries:5,report:6}[id];
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   if(id==='report') renderReport();
   if(id==='entries') renderEntries();
   if(id==='lines') renderLines();
   if(id==='flow') calcFlow();
   if(id==='schedule') renderSchedule();
+  if(id==='rotations') renderRotations();
   if(id==='log') window.setNow();
 };
 
@@ -768,33 +791,132 @@ function flashMsg(msg, success) {
   setTimeout(()=>el.classList.remove('show'),3500);
 }
 
+// ── ROTATIONS (ROUNDS) ──
+function renderRotations() {
+  const container = document.getElementById('rotationsContent');
+  if(!container) return;
+
+  // Group entries by machine, sorted by time
+  const byMachine = {};
+  Object.values(entries).forEach(e => {
+    if(!byMachine[e.machine]) byMachine[e.machine] = [];
+    byMachine[e.machine].push(e);
+  });
+
+  // Sort each machine's entries by timestamp
+  Object.keys(byMachine).forEach(m => {
+    byMachine[m].sort((a,b) => (a.ts||0)-(b.ts||0));
+  });
+
+  // Find max rounds across all machines
+  const maxRounds = Math.max(0, ...Object.values(byMachine).map(arr => arr.length));
+
+  if(maxRounds === 0) {
+    container.innerHTML = '<div class="empty-log"><div class="icon">🔄</div>No arrivals logged yet.</div>';
+    return;
+  }
+
+  // Build rounds view
+  let html = '';
+
+  // Summary: current round status
+  const currentRound = maxRounds;
+  const machinesInCurrentRound = Object.keys(byMachine).filter(m => byMachine[m].length >= currentRound);
+  const allMachines = MACHINES.filter(m => byMachine[m]); // only machines with at least 1 log
+
+  html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:0.82rem;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">Current Round — Round ${currentRound}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">`;
+
+  allMachines.forEach(m => {
+    const loads = byMachine[m]||[];
+    const hasThisRound = loads.length >= currentRound;
+    const lastLoad = loads[loads.length-1];
+    const avgKg = loads.reduce((s,e)=>s+(parseInt(e.tons)||0),0)/loads.length;
+    html += `<div style="background:${hasThisRound?'rgba(76,175,118,0.12)':'rgba(224,90,90,0.08)'};border:1px solid ${hasThisRound?'var(--green)':'var(--red)'};border-radius:8px;padding:8px 10px;min-width:70px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:0.9rem;letter-spacing:1.5px;color:${hasThisRound?'var(--green)':'var(--red)'};">${m}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:2px;">${hasThisRound?`✓ ${lastLoad?lastLoad.time:''}`:' Missing'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);">avg ${(avgKg/1000).toFixed(1)}t</div>
+    </div>`;
+  });
+
+  html += `</div></div>`;
+
+  // All rounds history
+  for(let r = maxRounds; r >= 1; r--) {
+    const machinesThisRound = allMachines.filter(m => (byMachine[m]||[]).length >= r);
+    const missing = allMachines.filter(m => (byMachine[m]||[]).length < r);
+    const totalKg = machinesThisRound.reduce((s,m) => {
+      const load = (byMachine[m]||[])[r-1];
+      return s + (parseInt(load?.tons)||0);
+    }, 0);
+
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;">
+      <div style="background:var(--surface2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;">Round ${r}</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${missing.length>0?`<span style="font-size:0.68rem;color:var(--red);font-family:'DM Mono',monospace;">${missing.length} missing</span>`:`<span style="font-size:0.68rem;color:var(--green);font-family:'DM Mono',monospace;">✓ Complete</span>`}
+          <span style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent);">${(totalKg/1000).toFixed(1)}t</span>
+        </div>
+      </div>
+      <div style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;">`;
+
+    allMachines.forEach(m => {
+      const load = (byMachine[m]||[])[r-1];
+      const hasLoad = !!load;
+      html += `<div style="background:${hasLoad?'var(--surface2)':'rgba(224,90,90,0.06)'};border:1px solid ${hasLoad?'var(--border)':'var(--red)'};border-radius:7px;padding:6px 10px;min-width:64px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:0.82rem;letter-spacing:1px;color:${hasLoad?'var(--text)':'var(--red)'};">${m}</div>
+        ${hasLoad?`<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);">${load.time}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);">${(parseInt(load.tons)/1000).toFixed(1)}t</div>`
+        :`<div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--red);">—</div>`}
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
 // ── ENTRIES ──
 window.setFilter=(val,el)=>{activeFilter=val;document.querySelectorAll('#filterRow .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderEntries();};
+
+function populateAreaFilter() {
+  const sel = document.getElementById('filterArea');
+  if(!sel) return;
+  const areas = [...new Set(Object.values(entries).map(e=>e.area||'').filter(Boolean))].sort();
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All areas</option>' + areas.map(a=>`<option value="${esc(a)}" ${a===current?'selected':''}>${esc(a)}</option>`).join('');
+}
+
 function renderEntries() {
+  populateAreaFilter();
   const lm={H2:{Left:3,Right:4},H3:{Left:5,Right:6},H4:{Left:7,Right:8},H5:{Left:9,Right:10},H6:{Left:11,Right:12}};
   const filterMachine=document.getElementById('filterMachine')?.value||'';
   const filterVariety=document.getElementById('filterVariety')?.value||'';
+  const filterArea=document.getElementById('filterArea')?.value||'';
 
   let list=Object.entries(entries).map(([k,v])=>({...v,_key:k})).sort((a,b)=>b.ts-a.ts);
   if(activeFilter!=='ALL') list=list.filter(e=>e.hopper===activeFilter);
   if(filterMachine) list=list.filter(e=>(e.machine||'').trim().toLowerCase()===filterMachine.trim().toLowerCase());
   if(filterVariety) list=list.filter(e=>(e.variety||'').trim().toLowerCase()===filterVariety.trim().toLowerCase());
+  if(filterArea) list=list.filter(e=>(e.area||'').trim().toLowerCase()===filterArea.trim().toLowerCase());
 
-  // Summary bar
+  // Summary
   const summaryEl=document.getElementById('entriesSummary');
   if(summaryEl&&list.length>0){
     const totalKg=list.reduce((s,e)=>s+(parseInt(e.tons)||0),0);
-    const isFiltered=activeFilter!=='ALL'||filterMachine||filterVariety;
+    const avgKg=totalKg/list.length;
     summaryEl.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
-        <span style="color:var(--muted);">${isFiltered?'Filtered: ':'Total: '}</span><span style="color:var(--accent);font-weight:500;">${totalKg.toLocaleString('en-GB')} kg</span>
+        <span style="color:var(--muted);">Total: </span><span style="color:var(--accent);font-weight:500;">${totalKg.toLocaleString('en-GB')} kg</span>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
         <span style="color:var(--muted);">Loads: </span><span style="color:var(--text);">${list.length}</span>
       </div>
-      ${totalKg>0?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
-        <span style="color:var(--muted);">Avg: </span><span style="color:var(--text);">${(totalKg/list.length/1000).toFixed(2)} t/load</span>
-      </div>`:''}
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.78rem;">
+        <span style="color:var(--muted);">Avg: </span><span style="color:var(--text);">${(avgKg/1000).toFixed(2)}t</span>
+      </div>
     </div>`;
   } else if(summaryEl) summaryEl.innerHTML='';
 
@@ -1109,12 +1231,18 @@ function renderSchedule() {
   const late=list.filter(p=>!p.arrivedTs&&p.predictedTs<now);
   const arrived=list.filter(p=>p.arrivedTs);
 
-  // Avg tons per machine from entries
+  // Avg tons per machine — group by ts to avoid double-counting Both-side splits
   const machineTotals={};
+  const machineLoadTs={}; // track unique loads by ts
   Object.values(entries).forEach(e=>{
-    if(!machineTotals[e.machine]) machineTotals[e.machine]={sum:0,count:0};
+    if(!machineTotals[e.machine]) { machineTotals[e.machine]={sum:0,count:0}; machineLoadTs[e.machine]=new Set(); }
     machineTotals[e.machine].sum+=(parseInt(e.tons)||0);
-    machineTotals[e.machine].count++;
+    // Count unique loads: if same machine+ts, it's a Both split (same load)
+    const loadKey=`${e.ts}`;
+    if(!machineLoadTs[e.machine].has(loadKey)){
+      machineLoadTs[e.machine].add(loadKey);
+      machineTotals[e.machine].count++;
+    }
   });
 
   // Down machines
