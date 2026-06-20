@@ -852,7 +852,7 @@ function renderRotations() {
         ${came?`
           <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);">${load.time}</div>
           <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent);">${(parseInt(load.tons)/1000).toFixed(1)}t</div>
-          ${load.variety?`<div style="font-size:0.65rem;background:rgba(232,197,71,0.12);color:var(--accent);border-radius:3px;padding:1px 5px;margin-top:3px;font-family:'DM Mono',monospace;display:inline-block;">${esc(load.variety)}</div>`:''}
+          ${load.variety?`<div style="font-size:0.65rem;background:rgba(232,197,71,0.12);color:var(--accent);border-radius:3px;padding:1px 5px;margin-top:3px;font-family:'DM Mono',monospace;display:inline-block;">${esc(load.variety)}${load.area?' · '+esc(load.area):''}</div>`:''}
         `:`<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted2);">waiting…</div>`}
       </div>`;
     });
