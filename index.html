@@ -797,17 +797,26 @@ function renderRotations() {
   if(!container) return;
 
   // Group entries by machine, sorted by timestamp
+  // Merge Both-split entries (same machine + same ts) into one load
   const byMachine = {};
   Object.values(entries).forEach(e => {
-    if(!byMachine[e.machine]) byMachine[e.machine] = [];
-    byMachine[e.machine].push(e);
+    if(!byMachine[e.machine]) byMachine[e.machine] = {};
+    const key = String(e.ts);
+    if(!byMachine[e.machine][key]) {
+      byMachine[e.machine][key] = {...e, tons: parseInt(e.tons)||0};
+    } else {
+      // Same load (Both split) — sum the tons
+      byMachine[e.machine][key].tons += parseInt(e.tons)||0;
+    }
   });
+  // Convert to sorted arrays
+  const byMachineArr = {};
   Object.keys(byMachine).forEach(m => {
-    byMachine[m].sort((a,b) => (a.ts||0)-(b.ts||0));
+    byMachineArr[m] = Object.values(byMachine[m]).sort((a,b)=>(a.ts||0)-(b.ts||0));
   });
 
   // Max rounds across all machines that have logged
-  const maxRounds = Math.max(0, ...Object.values(byMachine).map(arr => arr.length));
+  const maxRounds = Math.max(0, ...Object.values(byMachineArr).map(arr => arr.length));
 
   if(maxRounds === 0) {
     container.innerHTML = '<div class="empty-log"><div class="icon">🔄</div>No arrivals logged yet.</div>';
@@ -820,10 +829,10 @@ function renderRotations() {
   // All rounds from newest to oldest
   for(let r = currentRound; r >= 1; r--) {
     const totalKg = MACHINES.reduce((s,m) => {
-      const load = (byMachine[m]||[])[r-1];
+      const load = (byMachineArr[m]||[])[r-1];
       return s + (parseInt(load?.tons)||0);
     }, 0);
-    const came = MACHINES.filter(m => (byMachine[m]||[]).length >= r).length;
+    const came = MACHINES.filter(m => (byMachineArr[m]||[]).length >= r).length;
     const missing = MACHINES.length - came;
     const isComplete = missing === 0;
 
@@ -839,9 +848,9 @@ function renderRotations() {
       <div style="padding:10px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">`;
 
     MACHINES.forEach(m => {
-      const load = (byMachine[m]||[])[r-1];
+      const load = (byMachineArr[m]||[])[r-1];
       const came = !!load;
-      const allLoads = byMachine[m]||[];
+      const allLoads = byMachineArr[m]||[];
       const lastLoad = allLoads[allLoads.length-1];
       const avgKg = allLoads.length>0 ? allLoads.reduce((s,e)=>s+(parseInt(e.tons)||0),0)/allLoads.length : 0;
       const lastVariety = lastLoad?.variety||'';
