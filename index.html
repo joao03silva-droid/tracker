@@ -841,11 +841,14 @@ function renderRotations() {
     MACHINES.forEach(m => {
       const load = (byMachine[m]||[])[r-1];
       const came = !!load;
-      const avgLoads = byMachine[m]||[];
-      const avgKg = avgLoads.length>0 ? avgLoads.reduce((s,e)=>s+(parseInt(e.tons)||0),0)/avgLoads.length : 0;
+      const allLoads = byMachine[m]||[];
+      const lastLoad = allLoads[allLoads.length-1];
+      const avgKg = allLoads.length>0 ? allLoads.reduce((s,e)=>s+(parseInt(e.tons)||0),0)/allLoads.length : 0;
+      const lastVariety = lastLoad?.variety||'';
+      const lastArea = lastLoad?.area||'';
 
       html += `<div style="background:${came?'rgba(76,175,118,0.1)':'var(--surface2)'};border:1px solid ${came?'var(--green)':'var(--border)'};border-radius:8px;padding:8px 10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${came?3:0}px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
           <span style="font-family:'Bebas Neue',sans-serif;font-size:0.88rem;letter-spacing:1.5px;color:${came?'var(--green)':'var(--muted)'};">${m}</span>
           ${came?`<span style="font-size:0.7rem;color:var(--green);">✓</span>`:''}
         </div>
@@ -853,7 +856,11 @@ function renderRotations() {
           <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);">${load.time}</div>
           <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent);">${(parseInt(load.tons)/1000).toFixed(1)}t</div>
           ${load.variety?`<div style="font-size:0.65rem;background:rgba(232,197,71,0.12);color:var(--accent);border-radius:3px;padding:1px 5px;margin-top:3px;font-family:'DM Mono',monospace;display:inline-block;">${esc(load.variety)}${load.area?' · '+esc(load.area):''}</div>`:''}
-        `:`<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted2);">waiting…</div>`}
+        `:`
+          <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted2);margin-bottom:2px;">waiting…</div>
+          ${lastVariety?`<div style="font-size:0.65rem;background:rgba(255,255,255,0.05);color:var(--muted);border-radius:3px;padding:1px 5px;margin-top:2px;font-family:'DM Mono',monospace;display:inline-block;">${esc(lastVariety)}${lastArea?' · '+esc(lastArea):''}</div>`:''}
+          ${avgKg>0?`<div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted2);margin-top:2px;">~${(avgKg/1000).toFixed(1)}t avg</div>`:''}
+        `}
       </div>`;
     });
 
