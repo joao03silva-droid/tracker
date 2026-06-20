@@ -1,4 +1,4 @@
-const CACHE_NAME = 'harvest-tracker-v1';
+const CACHE_NAME = 'harvest-tracker-v3';
 const ASSETS = [
   './',
   './index.html',
