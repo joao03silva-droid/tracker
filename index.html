@@ -856,6 +856,41 @@ function renderRotations() {
       const lastVariety = lastLoad?.variety||'';
       const lastArea = lastLoad?.area||'';
 
+      // ETA for pending machines in current round
+      let etaStr = '';
+      if(!came && r === currentRound) {
+        // First try: active prediction
+        const pred = Object.values(predictions).find(p=>p.machine===m&&!p.arrivedTs);
+        if(pred && pred.predictedTs) {
+          const diff = pred.predictedTs - Date.now();
+          const etaTime = new Date(pred.predictedTs).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+          if(diff < 0) {
+            const minsLate = Math.round(-diff/60000);
+            etaStr = `<div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--red);margin-top:3px;">🕐 ${etaTime} <span style="opacity:0.8;">(${minsLate}m late)</span></div>`;
+          } else {
+            const minsAway = Math.round(diff/60000);
+            const col = minsAway<=30?'var(--accent)':'var(--muted)';
+            etaStr = `<div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:${col};margin-top:3px;">🕐 ${etaTime}</div>`;
+          }
+        } else if(lastLoad && lastLoad.time && (rotations[m]||0)>0) {
+          // Fallback: last arrival + rotation
+          const rot = rotations[m]||3;
+          const [lh,lm2] = lastLoad.time.split(':').map(Number);
+          const base = new Date(); base.setHours(lh,lm2,0,0);
+          const etaTs = base.getTime() + rot*3600000;
+          const diff = etaTs - Date.now();
+          const etaTime = new Date(etaTs).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+          if(diff < 0) {
+            const minsLate = Math.round(-diff/60000);
+            etaStr = `<div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--red);margin-top:3px;">🕐 ~${etaTime} <span style="opacity:0.8;">(${minsLate}m late)</span></div>`;
+          } else {
+            const minsAway = Math.round(diff/60000);
+            const col = minsAway<=30?'var(--accent)':'var(--muted)';
+            etaStr = `<div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:${col};margin-top:3px;">🕐 ~${etaTime}</div>`;
+          }
+        }
+      }
+
       html += `<div style="background:${came?'rgba(76,175,118,0.1)':'var(--surface2)'};border:1px solid ${came?'var(--green)':'var(--border)'};border-radius:8px;padding:8px 10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
           <span style="font-family:'Bebas Neue',sans-serif;font-size:0.88rem;letter-spacing:1.5px;color:${came?'var(--green)':'var(--muted)'};">${m}</span>
@@ -869,6 +904,7 @@ function renderRotations() {
           <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted2);margin-bottom:2px;">waiting…</div>
           ${lastVariety?`<div style="font-size:0.65rem;background:rgba(255,255,255,0.05);color:var(--muted);border-radius:3px;padding:1px 5px;margin-top:2px;font-family:'DM Mono',monospace;display:inline-block;">${esc(lastVariety)}${lastArea?' · '+esc(lastArea):''}</div>`:''}
           ${avgKg>0?`<div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted2);margin-top:2px;">~${(avgKg/1000).toFixed(1)}t avg</div>`:''}
+          ${etaStr}
         `}
       </div>`;
     });
@@ -970,7 +1006,30 @@ window.openEditEntry=(key)=>{
 window.closeEditModal=()=>{document.getElementById('editModal').classList.remove('open');editingKey=null;};
 window.saveEditEntry=async()=>{
   if(!editingKey)return;
-  await set(ref(db,`arrivals/${editingKey}`),{...entries[editingKey],machine:document.getElementById('eMachine').value,variety:document.getElementById('eVariety').value,area:document.getElementById('eArea').value.trim(),hopper:document.getElementById('eHopper').value,side:document.getElementById('eSide').value,tons:parseInt(document.getElementById('eTons').value)||0,time:document.getElementById('eTime').value});
+  const orig=entries[editingKey];
+  const newMachine=document.getElementById('eMachine').value;
+  const newTime=document.getElementById('eTime').value;
+  // If machine or time changed, recalculate ts so rounds sort correctly
+  let newTs=orig.ts;
+  if(newMachine!==orig.machine||newTime!==orig.time){
+    const now=new Date();
+    const [h,m]=(newTime||'00:00').split(':').map(Number);
+    const d=new Date(now);d.setHours(h,m,0,0);
+    // If resulting ts is in the future (past midnight edge), step back a day
+    if(d.getTime()>Date.now()+60000) d.setDate(d.getDate()-1);
+    newTs=d.getTime();
+  }
+  await set(ref(db,`arrivals/${editingKey}`),{
+    ...orig,
+    machine:newMachine,
+    variety:document.getElementById('eVariety').value,
+    area:document.getElementById('eArea').value.trim(),
+    hopper:document.getElementById('eHopper').value,
+    side:document.getElementById('eSide').value,
+    tons:parseInt(document.getElementById('eTons').value)||0,
+    time:newTime,
+    ts:newTs
+  });
   window.closeEditModal();
 };
 document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)window.closeEditModal();});
