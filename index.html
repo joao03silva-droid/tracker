@@ -1174,6 +1174,50 @@ function renderLines() {
         </div>
         <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
 
+        <!-- MACHINES FEEDING THIS LINE -->
+        ${(()=>{
+          const lineVarieties=[variety,variety2].filter(Boolean);
+          if(!lineVarieties.length) return '';
+          const cutoff=Date.now()-8*3600000;
+          // Latest entry per machine that brought any of the line's varieties in last 8h
+          const machineMap={};
+          Object.values(entries).forEach(e=>{
+            if(!lineVarieties.includes(e.variety)) return;
+            if((e.ts||0)<cutoff) return;
+            if(!machineMap[e.machine]||e.ts>machineMap[e.machine].ts) machineMap[e.machine]=e;
+          });
+          const machineList=Object.values(machineMap).sort((a,b)=>b.ts-a.ts);
+          if(!machineList.length) return '';
+          const rows=machineList.map(e=>{
+            const pred=Object.values(predictions).find(p=>p.machine===e.machine&&!p.arrivedTs);
+            let etaPart='';
+            if(pred&&pred.predictedTs){
+              const diff=pred.predictedTs-Date.now();
+              const t=new Date(pred.predictedTs).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+              if(diff<0){
+                etaPart=`<span style="color:var(--red);font-size:0.65rem;font-family:'DM Mono',monospace;">🕐 ${t} (${Math.round(-diff/60000)}m late)</span>`;
+              } else {
+                const col=diff<1800000?'var(--accent)':'var(--muted)';
+                etaPart=`<span style="color:${col};font-size:0.65rem;font-family:'DM Mono',monospace;">🕐 ${t}</span>`;
+              }
+            }
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:0.88rem;letter-spacing:1.5px;color:var(--accent);">${esc(e.machine)}</span>
+                <span style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace;">${esc(e.variety)}${e.area?' · '+esc(e.area):''}</span>
+              </div>
+              <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <span style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text);">${e.time} · ${(parseInt(e.tons)/1000).toFixed(1)}t</span>
+                ${etaPart}
+              </div>
+            </div>`;
+          }).join('');
+          return `<div style="padding:10px 0 6px;border-top:1px solid var(--border);margin-top:4px;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;letter-spacing:2px;color:var(--muted);margin-bottom:4px;">MACHINES → THIS LINE (last 8h)</div>
+            ${rows}
+          </div>`;
+        })()}
+
         <!-- SETTINGS -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;padding-top:10px;border-top:1px solid var(--border);">
           <div class="field"><label>Variety 1</label><div class="select-wrap"><select id="variety_${def.id}" style="appearance:none;-webkit-appearance:none;padding-right:22px;font-size:0.8rem;"><option value="">—</option>${varOpts}</select><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:0.75rem;">▾</span></div></div>
